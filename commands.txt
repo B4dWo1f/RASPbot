@@ -1,0 +1,4 @@
+fcst - Forecast for a specific time. Usage: /fcst %d/%m/%Y-%H
+sounding - Sounding for a specific place and time. Usage: /sounding {place} %d/%m/%Y-%H
+reload - Restart de bot
+stop - Completely stop the bot
