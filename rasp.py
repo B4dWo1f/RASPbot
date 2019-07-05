@@ -5,8 +5,10 @@ import aemet
 import credentials as CR
 from telegram.ext import Updater
 from telegram.ext import CommandHandler as CH
-from telegram.ext import MessageHandler, Filters
+from telegram.ext import MessageHandler, Filters, ConversationHandler
+from telegram.ext import CallbackQueryHandler as CQH
 from threading import Thread
+import sounding_menu as sm
 import datetime as dt
 import tool
 import sys
@@ -132,10 +134,20 @@ D.add_handler(CH('blwind', tool.blwind, pass_args=True, pass_job_queue=True))
 D.add_handler(CH('bltopwind', tool.bltopwind, pass_args=True, pass_job_queue=True))
 # CAPE
 D.add_handler(CH('cape', tool.cape, pass_args=True, pass_job_queue=True))
-# Sounding
-D.add_handler(CH('sounding', tool.sounding, pass_args=True, pass_job_queue=True))
+## Sounding
+#D.add_handler(CH('sounding', tool.sounding, pass_args=True, pass_job_queue=True))
 # Tormentas
 D.add_handler(CH('tormentas', tool.tormentas, pass_args=True, pass_job_queue=True))
+
+## Conversation Handler ########################################################
+conversation_handler = ConversationHandler(
+      entry_points=[CH('sounding', sm.choose_place, pass_user_data=True)],
+      states={'SOU_PLACE': [CQH(sm.choose_date, pass_user_data=True)],
+              'SOU_TIME': [CQH(sm.choose_time, pass_user_data=True)],
+              'SOU_SEND': [CQH(sm.send,pass_user_data=True,pass_job_queue=True)]},
+      fallbacks = [CH('sounding', sm.choose_place, pass_user_data=True)])
+D.add_handler(conversation_handler)
+################################################################################
 
 
 J.run_daily(broadcast, dt.time(7,55))
@@ -145,3 +157,4 @@ J.run_daily(broadcast, dt.time(18,15))
 
 
 U.start_polling()
+U.idle()
