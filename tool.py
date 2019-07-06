@@ -132,7 +132,8 @@ def general(bot,update,job_queue,args,prop):
       bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
       return
    prop_names = {'sfcwind':'Surface wind', 'blwind':'BL wind',
-                 'bltopwind':'top BL wind', 'cape':'CAPE'}
+                 'bltopwind':'top BL wind', 'cape':'CAPE',
+                 'wstar': 'Thermal Height', 'hbl': 'Height of BL Top'}
    txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
    try:
       f = os.popen("grep %s %s"%(f, f_id_files)).read().strip().split()[-1]
@@ -143,6 +144,12 @@ def general(bot,update,job_queue,args,prop):
       with open(f_id_files,'a') as fw:
          fw.write(str(f)+'   '+str(f_ID)+'\n')
       fw.close()
+
+def techo(bot,update,job_queue,args):
+   general(bot,update,job_queue,args,'hbl')
+
+def thermal(bot,update,job_queue,args):
+   general(bot,update,job_queue,args,'wstar')
 
 def cape(bot,update,job_queue,args):
    general(bot,update,job_queue,args,'cape')
