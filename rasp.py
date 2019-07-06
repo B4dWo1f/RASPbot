@@ -110,6 +110,7 @@ def broadcast(bot, job):
 
 # Start Bot
 token, Bcast_chatID = CR.get_credentials('rasp.token')
+token, Bcast_chatID = CR.get_credentials('RAVENsys.token')
 
 U = Updater(token=token)
 D = U.dispatcher
@@ -134,6 +135,10 @@ D.add_handler(CH('blwind', tool.blwind, pass_args=True, pass_job_queue=True))
 D.add_handler(CH('bltopwind', tool.bltopwind, pass_args=True, pass_job_queue=True))
 # CAPE
 D.add_handler(CH('cape', tool.cape, pass_args=True, pass_job_queue=True))
+# Techo
+D.add_handler(CH('techo', tool.techo, pass_args=True, pass_job_queue=True))
+# Thermal
+D.add_handler(CH('thermal', tool.thermal, pass_args=True, pass_job_queue=True))
 ## Sounding
 #D.add_handler(CH('sounding', tool.sounding, pass_args=True, pass_job_queue=True))
 # Tormentas
