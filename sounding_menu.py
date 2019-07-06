@@ -4,7 +4,9 @@
 import datetime as dt
 from telegram import InlineKeyboardButton as IlKB
 from telegram import InlineKeyboardMarkup
+from urllib.request import urlretrieve
 import tool
+import os
 
 
 def choose_place(bot, update, user_data):
@@ -76,6 +78,7 @@ def choose_time(bot, update, user_data):
 
 def send(bot, update, user_data, job_queue):
    # here I get my old selection
+   #LG.info('received request: %s'%(update.message.text))
    places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
              'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
              'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
@@ -95,7 +98,11 @@ def send(bot, update, user_data, job_queue):
    H = date.strftime('%H%M')
    url_picture = 'http://raspuri.mooo.com/RASP/'
    url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
+   f_tmp = '/tmp/' + tool.rand_name() + '.png'
+   urlretrieve(url_picture, f_tmp)
    txt = "Sounding _for_ %s at %s"%(place, date.strftime('%d/%m/%Y-%H:%M'))
-   tool.send_picture(bot, chatID, job_queue, url_picture, msg=txt, t=30,delete=True)
+   tool.send_picture(bot, chatID, job_queue, f_tmp, msg=txt, t=60,delete=True)
+   os.system(f'rm {f_tmp}')
+   #tool.send_picture(bot, chatID, job_queue, url_picture, msg=txt, t=30,delete=True)
    user_data = {}
    return
