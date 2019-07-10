@@ -105,7 +105,7 @@ def send(bot, update, user_data, job_queue):
    txt = "Sounding _for_ %s at %s"%(place, date.strftime('%d/%m/%Y-%H:%M'))
    if T != None:
       txt += '\nExpected temperature: %s°C'%(T)
-   tool.send_picture(bot, chatID, job_queue, f_tmp, msg=txt, t=5,delete=True)
+   tool.send_picture(bot, chatID, job_queue, f_tmp, msg=txt, t=180,delete=True)
    os.system(f'rm {f_tmp}')
    #tool.send_picture(bot, chatID, job_queue, url_picture, msg=txt, t=30,delete=True)
    user_data = {}
