@@ -110,7 +110,6 @@ def broadcast(bot, job):
 
 # Start Bot
 token, Bcast_chatID = CR.get_credentials('rasp.token')
-token, Bcast_chatID = CR.get_credentials('RAVENsys.token')
 
 U = Updater(token=token)
 D = U.dispatcher
