@@ -18,6 +18,7 @@ rio1 --> Ibérica Riojana (quizás toca la parte de Soria del RASP?)
 arn2 --> Ibérica Aragonesa (creo q no llega a salir en el rasp)
 """
 
+import datetime as dt
 from bs4 import BeautifulSoup
 from urllib.request import Request, urlopen
 import re
@@ -29,6 +30,13 @@ def make_request(url):
    req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
    html_doc = urlopen(req)
    html_doc = html_doc.read().decode(html_doc.headers.get_content_charset())
+   return html_doc
+
+def make_request1(url):
+   """ Make http request """
+   req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+   html_doc = urlopen(req)
+   html_doc = html_doc.read()
    return html_doc
 
 class AemetMontana(object):
@@ -66,4 +74,29 @@ def parse_parte_aemet(url):
    fcst = A.find('div',class_='texto_normal').text #.split('.')
    val = S.find_all('div', class_='notas_tabla')[-1].text.strip()
    return AemetMontana(place, val, fcst)
+
+def get_temp(place, date):
+   urls = {'arcones': 'http://www.aemet.es/xml/municipios_h/localidad_h_40020.xml',
+       'bustarviejo': 'http://www.aemet.es/xml/municipios_h/localidad_h_28028.xml',
+       'cebreros': 'http://www.aemet.es/xml/municipios_h/localidad_h_05057.xml',
+       'abantos': 'http://www.aemet.es/xml/municipios_h/localidad_h_28054.xml',
+       'piedrahita': 'http://www.aemet.es/xml/municipios_h/localidad_h_05186.xml',
+       'pedro bernardo': 'http://www.aemet.es/xml/municipios_h/localidad_h_05182.xml',
+       'lillo': 'http://www.aemet.es/xml/municipios_h/localidad_h_45084.xml',
+       'fuentemilanos': 'http://www.aemet.es/xml/municipios_h/localidad_h_40001.xml',
+       'candelario': 'http://www.aemet.es/xml/municipios_h/localidad_h_05021.xml',
+       'pitolero': 'http://www.aemet.es/xml/municipios_h/localidad_h_10034.xml',
+       'pegalajar': 'http://www.aemet.es/xml/municipios_h/localidad_h_23067.xml',
+       'otivar': 'http://www.aemet.es/xml/municipios_h/localidad_h_18148.xml'}
+   url = urls[place]
+
+   doc = make_request1(url)
+   S = BeautifulSoup(doc,'lxml')
+   for dia in S.find_all('dia'):
+      for T in dia.find_all('temperatura'):
+         date_data = dia['fecha'] +' '+ T['periodo']+':00'
+         date_data = dt.datetime.strptime(date_data, '%Y-%m-%d %H:%M')
+         if date == date_data:
+            return float(T.text)
+   return None
 

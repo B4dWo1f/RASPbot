@@ -7,6 +7,7 @@ from telegram import InlineKeyboardMarkup
 from urllib.request import urlretrieve
 import tool
 import os
+import aemet
 
 
 def choose_place(bot, update, user_data):
@@ -100,8 +101,11 @@ def send(bot, update, user_data, job_queue):
    url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
    f_tmp = '/tmp/' + tool.rand_name() + '.png'
    urlretrieve(url_picture, f_tmp)
+   T = aemet.get_temp(place,date)
    txt = "Sounding _for_ %s at %s"%(place, date.strftime('%d/%m/%Y-%H:%M'))
-   tool.send_picture(bot, chatID, job_queue, f_tmp, msg=txt, t=60,delete=True)
+   if T != None:
+      txt += '\nExpected temperature: %s°C'%(T)
+   tool.send_picture(bot, chatID, job_queue, f_tmp, msg=txt, t=5,delete=True)
    os.system(f'rm {f_tmp}')
    #tool.send_picture(bot, chatID, job_queue, url_picture, msg=txt, t=30,delete=True)
    user_data = {}
