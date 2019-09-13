@@ -105,7 +105,8 @@ def locate(date,prop):
    elif utcdate.date() == now.date()+3*day: fol = 'SC4+3'
    else: return None,None
    fname  = HOME+'/Documents/RASP/PLOTS/w2/%s/'%(fol)
-   fname += utcdate.strftime('%Y/%m/%d/%H00')
+   fname += utcdate.strftime('%H00')
+   #fname += utcdate.strftime('%Y/%m/%d/%H00')
    fname += '_%s.jpg'%(prop)
    return fol,fname
 
