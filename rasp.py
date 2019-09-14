@@ -14,7 +14,7 @@ import tool
 import sys
 import os
 here = os.path.dirname(os.path.realpath(__file__))
-
+HOME = os.getenv('HOME')
 import logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)s:%(levelname)s - %(message)s',
@@ -34,6 +34,7 @@ def shutdown():
 
 @CR.restricted
 def stop(bot, update):
+   """ Completely halt the Bot """
    chatID = update.message.chat_id
    txt = 'I\'ll be shutting down\nI hope to see you soon!'
    bot.send_message(chatID, text=txt, parse_mode='Markdown')
@@ -49,6 +50,7 @@ def stop_and_restart():
 
 @CR.restricted
 def restart(bot,update):
+   """ Reload the Bot to update code, for instance """
    txt = 'Bot is restarting...'
    chatID = update.message.chat_id
    bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
@@ -57,23 +59,19 @@ def restart(bot,update):
 
 
 def broadcast(bot, job):
-   """ Broadcast information to a given chat """
-   LG.info('Starting automatic 12:00 broadcast')
+   """
+   Broadcast daily information to a given chat.
+   It sends a video with the surface wind and the storms forecast.
+   """
    now = dt.datetime.now()
    tday = now.date()
-   if now.hour == 7: hours = [9,12,17,19]
-   elif now.hour == 10: hours = [12,17,19]
-   elif now.hour == 12: hours = [12,17,19]
-   elif now.hour == 18: hours = [17,19]
-   else: raise
-   for h in hours:
-      d = dt.datetime.combine(tday, dt.time(h, 0))
-      LG.info('Broadcasting forecast for '+d.strftime('%H:%M'))
-      _,f = tool.locate(d, 'sfcwind')
-      txt = 'Surface wind at *%s*\n'%(d.strftime('%H:%M'))
-      txt += 'For more information go to:\n'
-      txt += ' http://raspuri.mooo.com/RASP/index.php'
-      tool.send_picture(bot, Bcast_chatID, J, f, msg=txt,
+   LG.info(f"Starting automatic {now.strftime('%H:%M')} broadcast")
+   vid = f'{HOME}/Documents/RASP/PLOTS/w2/SC2/sfcwind.mp4'
+   txt = 'Surface wind for *%s*\n'%(tday.strftime('%d/%m/%Y'))
+   txt += 'For more information go to:\n'
+   txt += ' http://raspuri.mooo.com/RASP/index.php\n'
+   txt += ' http://meteonube.hopto.org'
+   tool.send_video(bot, Bcast_chatID, J, vid, msg=txt,
                                           t=5*3600, delete=True, dis_notif=True)
    if now.hour == 7:
       places = ['gre1', 'mad2']
@@ -86,29 +84,13 @@ def broadcast(bot, job):
             txt += '\n'+ str(P)
             M = bot.send_message(Bcast_chatID, text=txt, parse_mode='Markdown')
             txt = ''
-      if txt == 'AVISOS DE TORMENTA': txt += ': No se esperan'
-      M = bot.send_message(Bcast_chatID, text=txt, parse_mode='Markdown')
-
-#def check_storms(bot, job):
-#   """
-#   Check the storms forecast from aemet.
-#   """
-#   places = ['gre1', 'mad2']
-#   w = 2
-#   txt = 'AVISOS DE TORMENTA'
-#   for p in places:
-#      url = f'http://www.aemet.es/es/eltiempo/prediccion/montana?w={w}&p={p}'
-#      P = aemet.parse_parte_aemet(url)
-#      if P.storm != 'No se esperan':
-#         txt += '\n'+ str(P)
-#         M = bot.send_message(Bcast_chatID, text=txt, parse_mode='Markdown')
-#         txt = ''
-#   if txt == 'AVISOS DE TORMENTA': txt += 'No se esperan'
-#   M = bot.send_message(Bcast_chatID, text=txt, parse_mode='Markdown')
+      if txt == 'AVISOS DE TORMENTA':
+         txt += ': No se esperan'
+         M = bot.send_message(Bcast_chatID, text=txt, parse_mode='Markdown')
 
 
 
-# Start Bot
+# Start Bot ####################################################################
 token, Bcast_chatID = CR.get_credentials('rasp.token')
 
 U = Updater(token=token)
@@ -154,11 +136,10 @@ D.add_handler(conversation_handler)
 ################################################################################
 
 
-J.run_daily(broadcast, dt.time(7,58))
-#J.run_daily(check_storms, dt.time(10,38))
-J.run_daily(broadcast, dt.time(10,58))
-J.run_daily(broadcast, dt.time(12,58))
-J.run_daily(broadcast, dt.time(18,18))
+# Broadcast
+J.run_daily(broadcast, dt.time(7,30))
+J.run_daily(broadcast, dt.time(12,30))
+J.run_daily(broadcast, dt.time(18,15))
 
 
 U.start_polling()

@@ -18,6 +18,22 @@ def call_delete(bot, job):
    msgID = job.context['message_id']
    bot.delete_message(chatID,msgID)
 
+def send_video(bot, chatID, job_queue, vid, msg='',
+               t=60,delete=True,dis_notif=False):
+   if vid[:4] == 'http': video = vid
+   else:
+      try: video = open(vid, 'rb')  # TODO raise and report if file not found
+      except: video = vid
+   bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_VIDEO)
+   M = bot.send_video(chatID, video, caption=msg,
+                              timeout=300, disable_notification=dis_notif,
+                              parse_mode=ParseMode.MARKDOWN)
+   if delete:
+      LG.debug('pic %s to be deleted at %s'%(vid,dt.datetime.now()+dt.timedelta(seconds=t)))
+      job_queue.run_once(call_delete, t, context=M)
+   return M
+
+
 def send_picture(bot, chatID, job_queue, pic, msg='',
                  t=60,delete=True,dis_notif=False):
    """
