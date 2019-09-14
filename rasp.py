@@ -62,9 +62,9 @@ def broadcast(bot, job):
    now = dt.datetime.now()
    tday = now.date()
    if now.hour == 7: hours = [9,12,17,19]
+   elif now.hour == 10: hours = [12,17,19]
    elif now.hour == 12: hours = [12,17,19]
    elif now.hour == 18: hours = [17,19]
-   elif now.hour == 21: raise
    else: raise
    for h in hours:
       d = dt.datetime.combine(tday, dt.time(h, 0))
@@ -154,10 +154,10 @@ D.add_handler(conversation_handler)
 ################################################################################
 
 
-J.run_daily(broadcast, dt.time(7,55))
-#J.run_daily(check_storms, dt.time(8,30))
-J.run_daily(broadcast, dt.time(12,45))
-J.run_daily(broadcast, dt.time(18,15))
+J.run_daily(broadcast, dt.time(7,58))
+J.run_daily(check_storms, dt.time(10,38))
+J.run_daily(broadcast, dt.time(12,48))
+J.run_daily(broadcast, dt.time(18,18))
 
 
 U.start_polling()
