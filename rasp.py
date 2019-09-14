@@ -155,8 +155,9 @@ D.add_handler(conversation_handler)
 
 
 J.run_daily(broadcast, dt.time(7,58))
-J.run_daily(check_storms, dt.time(10,38))
-J.run_daily(broadcast, dt.time(12,48))
+#J.run_daily(check_storms, dt.time(10,38))
+J.run_daily(broadcast, dt.time(10,58))
+J.run_daily(broadcast, dt.time(12,58))
 J.run_daily(broadcast, dt.time(18,18))
 
 
