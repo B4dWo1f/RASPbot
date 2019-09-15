@@ -137,7 +137,7 @@ D.add_handler(conversation_handler)
 
 
 # Broadcast
-J.run_daily(broadcast, dt.time(7,30))
+J.run_daily(broadcast, dt.time(8,15))
 J.run_daily(broadcast, dt.time(12,30))
 J.run_daily(broadcast, dt.time(18,15))
 
