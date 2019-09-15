@@ -159,7 +159,8 @@ def general(bot,update,job_queue,args,prop):
    f_ID = M['photo'][-1]['file_id']
    if f[0] == '/':   # means that f is the abs path of the file
       with open(f_id_files,'a') as fw:
-         fw.write(str(f)+'   '+str(f_ID)+'\n')
+         fw.write(dt.datetime.now().strftime('%d/%m/%Y-%H:%M'))
+         fw.write('   '+str(f)+'   '+str(f_ID)+'\n')
       fw.close()
 
 def techo(bot,update,job_queue,args):

@@ -10,17 +10,17 @@ import datetime as dt
 here = os.path.dirname(os.path.realpath(__file__))
 
 fname = here + '/pics_ids.txt'
+t0 = 5*60*60  # if files send longer than t0 seconds ago, send the new version
 
 all_lines = open(fname,'r').read().strip().splitlines()
 
-now = dt.datetime.now().date()
+now = dt.datetime.now()
 keep_lines = []
 for l in all_lines:
    date = l.split()[0]
-   date = '/'.join(date.split('/')[-4:]).split('_')[0]
-   date = dt.datetime.strptime(date, '%Y/%m/%d/%H%M').date()
+   date = dt.datetime.strptime(date, '%d/%m/%Y-%H:%M')
    p_id = l.split()[-1]
-   if (date-now).total_seconds() > 0: keep_lines.append(l)
+   if (now-date).total_seconds() < t0: keep_lines.append(l)
 
 with open(fname, 'w') as f:
    for l in keep_lines:
