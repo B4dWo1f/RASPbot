@@ -20,12 +20,18 @@ def call_delete(bot, job):
 
 def send_video(bot, chatID, job_queue, vid, msg='',
                t=60,delete=True,dis_notif=False):
+   func = bot.send_video
    if vid[:4] == 'http': video = vid
    else:
-      try: video = open(vid, 'rb')  # TODO raise and report if file not found
-      except: video = vid
+      try:
+         video = open(vid, 'rb')  # TODO raise and report if file not found
+         txt = 'This usually takes a few seconds... be patient'
+         bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
+      except:
+         video = vid
+         func = bot.send_animation
    bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_VIDEO)
-   M = bot.send_video(chatID, video, caption=msg,
+   M = func(chatID, video, caption=msg,
                               timeout=300, disable_notification=dis_notif,
                               parse_mode=ParseMode.MARKDOWN)
    if delete:
@@ -81,14 +87,22 @@ def parser_date(line):
              4: 'viernes', 5: 'sábado', 6: 'domingo'}
    daynum = {'lunes':0, 'martes':1, 'miercoles':2, 'miércoles':2, 'jueves':3,
              'viernes':4, 'sabado':5, 'sábado':5, 'domingo':6}
-   shifts = {'hoy':0, 'mañana':1, 'pasado':2, 'al otro':3}
+   shifts = {'hoy':0, 'mañana':1, 'pasado':2, 'pasado mañana':2, 'al otro':3}
 
    fmt = '%d/%m/%Y-%H:%M'
+   notime = False
    try: return dt.datetime.strptime(line, fmt)
    except ValueError:
-      pattern = r'([ ^\W\w\d_ ]*) (\S+)'
-      match = re.search(pattern, line)
-      date,time = match.groups()
+      try:
+         pattern = r'([ ^\W\w\d_ ]*) (\S+)'
+         match = re.search(pattern, line)
+         date,time = match.groups()
+      except AttributeError:
+         pattern = r'([ ^\W\w\d_ ]*)'
+         match = re.search(pattern, line)
+         date = match.groups()[0]
+         time = '0:0'
+         notime = True
       date = date.lower()
       h,m = parse_time(time)
       if date in daynum.keys(): ###############################  Using weekdays
@@ -101,12 +115,11 @@ def parser_date(line):
             if d==qday: break
          date = now + i*day
       else: ##############################################  Using relative days
-         shifts = {'hoy':0, 'mañana':1, 'pasado':2, 'pasado mañana':2,
-                   'al otro':3}
          delta = dt.timedelta(days=shifts[date.lower()])
          now = dt.datetime.now()
          date = now+delta
-      return date.replace(hour=h, minute=m, second=0, microsecond=0)
+      if notime: return date.date()
+      else: return date.replace(hour=h, minute=m, second=0, microsecond=0)
    except: raise
 
 
@@ -114,17 +127,24 @@ def locate(date,prop):
    UTCshift = dt.datetime.now()-dt.datetime.utcnow()
    utcdate = date - UTCshift
    now = dt.datetime.utcnow()
+   fname  = HOME+'/Documents/RASP/PLOTS/w2/'
    day = dt.timedelta(days=1)
-   if   utcdate.date() == now.date(): fol = 'SC2'
-   elif utcdate.date() == now.date()+day: fol = 'SC2+1'
-   elif utcdate.date() == now.date()+2*day: fol = 'SC4+2'
-   elif utcdate.date() == now.date()+3*day: fol = 'SC4+3'
-   else: return None,None
-   fname  = HOME+'/Documents/RASP/PLOTS/w2/%s/'%(fol)
-   fname += utcdate.strftime('%H00')
-   #fname += utcdate.strftime('%Y/%m/%d/%H00')
-   fname += '_%s.jpg'%(prop)
-   return fol,fname
+   if isinstance(utcdate, dt.datetime):
+      if   utcdate.date() == now.date(): fol = 'SC2'
+      elif utcdate.date() == now.date()+day: fol = 'SC2+1'
+      elif utcdate.date() == now.date()+2*day: fol = 'SC4+2'
+      elif utcdate.date() == now.date()+3*day: fol = 'SC4+3'
+      else: return None,None
+      fname += fol + utcdate.strftime('/%H00')
+      fname += '_%s.jpg'%(prop)
+      return fol,fname
+   else:
+      if   utcdate == now.date(): fol = 'SC2'
+      elif utcdate == now.date()+day: fol = 'SC2+1'
+      elif utcdate == now.date()+2*day: fol = 'SC4+2'
+      elif utcdate == now.date()+3*day: fol = 'SC4+3'
+      fname += fol+'/'+prop+'.mp4'
+      return fol,fname
 
 
 def general(bot,update,job_queue,args,prop):
@@ -143,7 +163,7 @@ def general(bot,update,job_queue,args,prop):
       txt += '    /fcst al otro 14'
       bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
       return
-   _,f = locate(date, prop)
+   fol,f = locate(date, prop)
    if f == None:
       txt = 'Sorry, forecast not available'
       bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
@@ -152,11 +172,14 @@ def general(bot,update,job_queue,args,prop):
                  'bltopwind':'top BL wind', 'cape':'CAPE',
                  'wstar': 'Thermal Height', 'hbl': 'Height of BL Top'}
    txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
+   if f[-4:] == '.mp4': send_func = send_video
+   elif f[-4:] in ['.png','.jpg']: send_func = send_picture
    try:
       f = os.popen("grep %s %s"%(f, f_id_files)).read().strip().split()[-1]
    except: pass
-   M = send_picture(bot, chatID, job_queue, f, msg=txt, t=180,delete=True)
-   f_ID = M['photo'][-1]['file_id']
+   M = send_func(bot, chatID, job_queue, f, msg=txt, t=180,delete=True)
+   try: f_ID = M['photo'][-1]['file_id']
+   except: f_ID = M['animation']['file_id']
    if f[0] == '/':   # means that f is the abs path of the file
       with open(f_id_files,'a') as fw:
          fw.write(dt.datetime.now().strftime('%d/%m/%Y-%H:%M'))
