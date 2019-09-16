@@ -69,10 +69,10 @@ def broadcast(bot, job):
    vid = f'{HOME}/Documents/RASP/PLOTS/w2/SC2/sfcwind.mp4'
    txt = 'Surface wind for *%s*\n'%(tday.strftime('%d/%m/%Y'))
    txt += 'For more information go to:\n'
-   txt += ' http://raspuri.mooo.com/RASP/index.php\n'
-   txt += ' http://meteonube.hopto.org'
+   txt += ' http://raspuri.mooo.com/RASP/index.php'
+   #txt += ' http://meteonube.hopto.org'
    tool.send_video(bot, Bcast_chatID, J, vid, msg=txt,
-                                          t=5*3600, delete=True, dis_notif=True)
+                                          t=3*3600, delete=True, dis_notif=True)
    if now.hour == 7:
       places = ['gre1', 'mad2']
       w = 2
@@ -138,7 +138,8 @@ D.add_handler(conversation_handler)
 
 # Broadcast
 J.run_daily(broadcast, dt.time(8,15))
-J.run_daily(broadcast, dt.time(12,30))
+J.run_daily(broadcast, dt.time(13,00))
+J.run_daily(broadcast, dt.time(15,55))
 J.run_daily(broadcast, dt.time(18,15))
 
 

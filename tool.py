@@ -26,11 +26,12 @@ def send_video(bot, chatID, job_queue, vid, msg='',
       try:
          video = open(vid, 'rb')  # TODO raise and report if file not found
          txt = 'This usually takes a few seconds... be patient'
-         bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
+         M1 = bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
       except:
          video = vid
          func = bot.send_animation
    bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_VIDEO)
+   job_queue.run_once(call_delete, 55, context=M1)
    M = func(chatID, video, caption=msg,
                               timeout=300, disable_notification=dis_notif,
                               parse_mode=ParseMode.MARKDOWN)
