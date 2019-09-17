@@ -71,8 +71,8 @@ def broadcast(bot, job):
    txt += 'For more information go to:\n'
    txt += ' http://raspuri.mooo.com/RASP/index.php'
    #txt += ' http://meteonube.hopto.org'
-   tool.send_video(bot, Bcast_chatID, J, vid, msg=txt,
-                                          t=3*3600, delete=True, dis_notif=True)
+   tool.send_video(bot, Bcast_chatID, J, vid, msg=txt, t=3*3600, delete=True,
+                                              dis_notif=True, warn_wait=False)
    if now.hour == 7:
       places = ['gre1', 'mad2']
       w = 2
