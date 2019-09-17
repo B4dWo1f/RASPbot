@@ -28,11 +28,11 @@ def send_video(bot, chatID, job_queue, vid, msg='',
          if warn_wait:
             txt = 'This usually takes a few seconds... be patient'
             M1 = bot.send_message(chatID, text=txt, parse_mode='Markdown')
+            job_queue.run_once(call_delete, 55, context=M1)
       except:
          video = vid
          func = bot.send_animation
    bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_VIDEO)
-   job_queue.run_once(call_delete, 55, context=M1)
    M = func(chatID, video, caption=msg,
                               timeout=300, disable_notification=dis_notif,
                               parse_mode=ParseMode.MARKDOWN)
