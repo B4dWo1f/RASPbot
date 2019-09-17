@@ -19,14 +19,15 @@ def call_delete(bot, job):
    bot.delete_message(chatID,msgID)
 
 def send_video(bot, chatID, job_queue, vid, msg='',
-               t=60,delete=True,dis_notif=False):
+               t=60,delete=True,dis_notif=False,warn_wait=True):
    func = bot.send_video
    if vid[:4] == 'http': video = vid
    else:
       try:
          video = open(vid, 'rb')  # TODO raise and report if file not found
-         txt = 'This usually takes a few seconds... be patient'
-         M1 = bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
+         if warn_wait:
+            txt = 'This usually takes a few seconds... be patient'
+            M1 = bot.send_message(chatID, text=txt, parse_mode='Markdown')
       except:
          video = vid
          func = bot.send_animation
