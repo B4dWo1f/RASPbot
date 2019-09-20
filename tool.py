@@ -10,9 +10,10 @@ import aemet
 import re
 import logging
 import os
+here = os.path.dirname(os.path.realpath(__file__))
 HOME = os.getenv('HOME')
 LG = logging.getLogger(__name__)
-f_id_files = 'pics_ids.txt'
+f_id_files = here+'/pics_ids.txt'
 
 def call_delete(context: telegram.ext.CallbackContext):
    """
