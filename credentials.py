@@ -29,15 +29,15 @@ def get_credentials(api_file=here+'/telegram_bot.private'):
 def restricted(func):
    """ Decorator to restrict the use of certain functions """
    @wraps(func)
-   def wrapped(bot, update, *args, **kwargs):
+   def wrapped(update, context, *args, **kwargs):
       user_id = update.effective_user.id
       user_nm = update.effective_user.username
       chatID = update.message.chat_id
       if user_id not in ADMINS_id or user_nm not in ADMINS_un:
          txt = "Unauthorized access denied for %s (%s)"%(user_nm,user_id)
-         bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
+         context.bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
          return
-      return func(bot, update, *args, **kwargs)
+      return func(update, context, *args, **kwargs)
    return wrapped
 
 if __name__ == '__main__':

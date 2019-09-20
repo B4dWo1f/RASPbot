@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 from telegram import ChatAction, ParseMode
+import telegram
 import string
 from urllib.request import urlretrieve
 import datetime as dt
@@ -9,41 +10,47 @@ import aemet
 import re
 import logging
 import os
+here = os.path.dirname(os.path.realpath(__file__))
 HOME = os.getenv('HOME')
 LG = logging.getLogger(__name__)
-f_id_files = 'pics_ids.txt'
+f_id_files = here+'/pics_ids.txt'
 
-def call_delete(bot, job):
-   chatID = job.context['chat']['id']
-   msgID = job.context['message_id']
-   bot.delete_message(chatID,msgID)
+def call_delete(context: telegram.ext.CallbackContext):
+   """
+    context.job.context should carry the chatID and the msgID
+   """
+   chatID, msgID = context.job.context
+   m = context.bot.delete_message(chatID, msgID)
 
-def send_video(bot, chatID, job_queue, vid, msg='',
+def send_video(update,context, vid, msg='',
                t=60,delete=True,dis_notif=False,warn_wait=True):
-   func = bot.send_video
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
+   func = context.bot.send_video
    if vid[:4] == 'http': video = vid
    else:
       try:
          video = open(vid, 'rb')  # TODO raise and report if file not found
          if warn_wait:
             txt = 'This usually takes a few seconds... be patient'
-            M1 = bot.send_message(chatID, text=txt, parse_mode='Markdown')
+            M1 = context.bot.send_message(chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
       except:
          video = vid
-         func = bot.send_animation
-   bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_VIDEO)
-   job_queue.run_once(call_delete, 55, context=M1)
+         func = context.bot.send_animation
+   context.bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_VIDEO)
    M = func(chatID, video, caption=msg,
                               timeout=300, disable_notification=dis_notif,
                               parse_mode=ParseMode.MARKDOWN)
+   t=30
    if delete:
-      LG.debug('pic %s to be deleted at %s'%(vid,dt.datetime.now()+dt.timedelta(seconds=t)))
-      job_queue.run_once(call_delete, t, context=M)
+      tdel = dt.datetime.now()+dt.timedelta(seconds=t)
+      LG.debug('vid %s to be deleted at %s'%(vid,tdel))
+      msgID = M.message_id
+      context.job_queue.run_once(call_delete,t, context=(chatID, msgID))
    return M
 
 
-def send_picture(bot, chatID, job_queue, pic, msg='',
-                 t=60,delete=True,dis_notif=False):
+def send_picture(update,context, pic, msg='',t=60,delete=True,dis_notif=False):
    """
     Send a picture and, optionally, remove it locally/remotely (rm/delete)
     pic = photo to send
@@ -52,19 +59,25 @@ def send_picture(bot, chatID, job_queue, pic, msg='',
     delete = remove remote file t seconds after sending
     dis_notif = Disable sound notification
    """
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
    LG.info('Sending picture: %s'%(pic))
    if pic[:4] == 'http': photo = pic
    else:
       try: photo = open(pic, 'rb')  # TODO raise and report if file not found
       except: photo = pic
-   bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
-   M = bot.send_photo(chatID, photo, caption=msg,
+   context.bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
+   M = context.bot.send_photo(chatID, photo, caption=msg,
                               timeout=300, disable_notification=dis_notif,
                               parse_mode=ParseMode.MARKDOWN)
+   t=30
    if delete:
-      LG.debug('pic %s to be deleted at %s'%(pic,dt.datetime.now()+dt.timedelta(seconds=t)))
-      job_queue.run_once(call_delete, t, context=M)
+      tdel = dt.datetime.now()+dt.timedelta(seconds=t)
+      LG.debug('pic %s to be deleted at %s'%(pic,tdel))
+      msgID = M.message_id
+      context.job_queue.run_once(call_delete,t, context=(chatID, msgID))
    return M
+
 
 def rand_name(pwdSize=8):
    """ Generates a random string of letters and digits with pwdSize length """
@@ -149,11 +162,12 @@ def locate(date,prop):
       return fol,fname
 
 
-def general(bot,update,job_queue,args,prop):
+def general(update,context,prop): #(bot,update,job_queue,args,prop):
    """ echo-like service to check system status """
    LG.info('received request: %s'%(update.message.text))
-   chatID = update.message.chat_id
-   d = ' '.join(args)
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
+   d = ' '.join(context.args)
    try: date = parser_date(d)
    except:
       txt = 'Sorry, I didn\'t understand\n'
@@ -163,12 +177,12 @@ def general(bot,update,job_queue,args,prop):
       txt += 'ex: /fcst 18/05/2019-13:00\n'
       txt += '    /fcst mañana 13:00\n'
       txt += '    /fcst al otro 14'
-      bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
+      context.bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
       return
    fol,f = locate(date, prop)
    if f == None:
       txt = 'Sorry, forecast not available'
-      bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
+      context.bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
       return
    prop_names = {'sfcwind':'Surface wind', 'blwind':'BL wind',
                  'bltopwind':'top BL wind', 'cape':'CAPE',
@@ -179,7 +193,8 @@ def general(bot,update,job_queue,args,prop):
    try:
       f = os.popen("grep %s %s"%(f, f_id_files)).read().strip().split()[-1]
    except: pass
-   M = send_func(bot, chatID, job_queue, f, msg=txt, t=180,delete=True)
+   M = send_func(update,context, f, msg=txt, t=180,delete=True)
+   #M = send_func(bot, chatID, job_queue, f, msg=txt, t=180,delete=True)
    try: f_ID = M['photo'][-1]['file_id']
    except: f_ID = M['animation']['file_id']
    if f[0] == '/':   # means that f is the abs path of the file
@@ -188,59 +203,23 @@ def general(bot,update,job_queue,args,prop):
          fw.write('   '+str(f)+'   '+str(f_ID)+'\n')
       fw.close()
 
-def techo(bot,update,job_queue,args):
-   general(bot,update,job_queue,args,'hbl')
 
-def thermal(bot,update,job_queue,args):
-   general(bot,update,job_queue,args,'wstar')
+def techo(update, context):     general(update,context,'hbl')
 
-def cape(bot,update,job_queue,args):
-   general(bot,update,job_queue,args,'cape')
+def thermal(update, context):   general(update,context,'wstar')
 
-def fcst(bot,update,job_queue,args):
-   general(bot,update,job_queue,args,'sfcwind')
+def cape(update, context):      general(update,context,'cape')
 
-def sfcwind(bot,update,job_queue,args):
-   general(bot,update,job_queue,args,'sfcwind')
+def sfcwind(update, context):   general(update,context,'sfcwind')
 
-def blwind(bot,update,job_queue,args):
-   general(bot,update,job_queue,args,'blwind')
+def blwind(update, context):    general(update,context,'blwind')
 
-def bltopwind(bot,update,job_queue,args):
-   general(bot,update,job_queue,args,'bltopwind')
+def bltopwind(update, context): general(update,context,'bltopwind')
 
 
-def sounding(bot,update,job_queue,args):
-   """ echo-like service to check system status """
-   LG.info('received request: %s'%(update.message.text))
-   chatID = update.message.chat_id
-   places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
-             'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
-             'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
-             'pegalajar': 12, 'otivar': 13}
-   place = ' '.join(args[:-2])
-   index = places[place.lower()]
-   date = ' '.join(args[-2:])
-   try: date = parser_date(date)
-   except:
-      txt = 'Sorry, I didn\'t understand\n'
-      txt += 'Usage: /sounding {place} %d/%m/%Y-%H:%M\n'
-      txt += 'ex: /sounding Arcones 18/05/2019-13:00'
-      bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
-      return
-   fmt = '%d_%m_%Y_%H_%M'
-   txt = "Sounding for *%s* at *%s*"%(place.capitalize(), date.strftime(fmt))
-   fol,_ = locate(date,'')
-   H = date.strftime('%H%M')
-   url_picture = f'http://raspuri.mooo.com/RASP/'
-   url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
-   f_tmp = '/tmp/' + rand_name() + '.png'
-   urlretrieve(url_picture, f_tmp)
-   send_picture(bot, chatID, job_queue, f_tmp, msg=txt, t=60,delete=True)
-   os.system(f'rm {f_tmp}')
-
-def tormentas(bot,update,job_queue,args):
-   chatID = update.message.chat_id
+def tormentas(update, context):  #(bot,update,job_queue,args):
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
    def usage():
       txt = 'Available places:\n'
       txt += ' - Guadarrama, Somosierra, Gredos\n'
@@ -250,7 +229,7 @@ def tormentas(bot,update,job_queue,args):
       txt += 'Ex: /tormentas gredos mañana\n'
       txt += '      /tormentas Guadarrama al otro\n'
       txt += '      /tormentas somosierra hoy\n'
-      M = bot.send_message(chatID, text=txt, parse_mode='Markdown')
+      M = context.bot.send_message(chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
    names = {'picos de europa': 'peu1',
             'pirineo navarro': 'nav1',
             'pirineo aragones': 'arn1',
@@ -262,24 +241,30 @@ def tormentas(bot,update,job_queue,args):
             'sierra nevada': 'nev1'}
    dates = {'hoy':2, 'mañana':3, 'pasado':4, 'al otro':5, 'al siguiente':6}
 
-   if len(args) == 0:
+   if len(context.args) == 0:
       usage()
       return
-   place = args[0].strip().lower()
+   place = context.args[0].strip().lower()
    place = names[place]
-   date = ' '.join(args[1:]).lower()
+   date = ' '.join(context.args[1:]).lower()
    w = dates[date]
    url = f'http://www.aemet.es/es/eltiempo/prediccion/montana?w={w}&p={place}'
-   txt = str(aemet.parse_parte_aemet(url))
-   M = bot.send_message(chatID, text=txt, parse_mode='Markdown')
+   txt = '`'+str(aemet.parse_parte_aemet(url))+'`\n'
+   txt += f'Taken from {url}'
+   M = context.bot.send_message(chatID, text=txt,
+                                disable_web_page_preview=True,
+                                parse_mode=ParseMode.MARKDOWN)
 
 
 ## Auxiliary ###################################################################
 from random import choice
-def hola(bot, update):
+#def hola(bot, update):
+def hola(update, context):
    """ echo-like service to check system status """
    LG.info('Hola!')
-   chatID = update.message.chat_id
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
    salu2 = ['What\'s up?', 'Oh, hi there!', 'How you doin\'?', 'Hello!']
    txt = choice(salu2)
-   M = bot.send_message(chatID, text=txt, parse_mode='Markdown')
+   M = context.bot.send_message(chatID, text=txt, 
+                                parse_mode=ParseMode.MARKDOWN)
