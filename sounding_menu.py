@@ -8,11 +8,12 @@ from urllib.request import urlretrieve
 import tool
 import os
 import aemet
+here = os.path.dirname(os.path.realpath(__file__))
 
 
-def choose_place(bot, update, user_data):
-   user_data = {}
-   places = open('soundings.csv','r').read().strip().splitlines()
+def choose_place(update,context): #bot, update, user_data):
+   #user_data = {}
+   places = open(here+'/soundings.csv','r').read().strip().splitlines()
    places = dict([l.split(',') for l in places])
    places_keys = list(places.keys())
    keyboard = []
@@ -29,14 +30,14 @@ def choose_place(bot, update, user_data):
    update.message.reply_text("Choose a place:", reply_markup=reply_markup)
    return 'SOU_PLACE'
 
-def choose_date(bot, update, user_data):
+def choose_date(update,context): #(bot, update, user_data):
    query = update.callback_query
    selection = query.data
    # save selection into user data
-   user_data['sou_place'] = selection
-   bot.edit_message_text(chat_id=query.message.chat_id,
-                         message_id=query.message.message_id,
-                         text=u"Selected: %s"%(query.data))
+   context.user_data['sou_place'] = selection
+   context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                 message_id=query.message.message_id,
+                                 text=u"Selected: %s"%(query.data))
    now = dt.datetime.now()
    day = dt.timedelta(days=1)
    fmt = '%d/%m/%Y'
@@ -46,19 +47,19 @@ def choose_date(bot, update, user_data):
                 IlKB("Al otro", callback_data=(now+3*day).strftime(fmt))] ]
    reply_markup = InlineKeyboardMarkup(keyboard)
    #update.message.reply_text("Choose date:", reply_markup=reply_markup)
-   bot.edit_message_reply_markup(chat_id=query.message.chat_id,
-                                 message_id=query.message.message_id,
-                                 reply_markup=reply_markup)
+   context.bot.edit_message_reply_markup(chat_id=query.message.chat_id,
+                                         message_id=query.message.message_id,
+                                         reply_markup=reply_markup)
    return 'SOU_TIME'
 
-def choose_time(bot, update, user_data):
+def choose_time(update,context): #(bot, update, user_data):
    query = update.callback_query
    selection = query.data
    # save selection into user data
-   user_data['sou_date'] = selection
-   bot.edit_message_text(chat_id=query.message.chat_id,
-                         message_id=query.message.message_id,
-                         text=u"Selected: %s"%(query.data))
+   context.user_data['sou_date'] = selection
+   context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                 message_id=query.message.message_id,
+                                 text=u"Selected: %s"%(query.data))
    keyboard=[[IlKB("9:00",  callback_data='9:00') ,
               IlKB("10:00", callback_data='10:00'),
               IlKB("11:00", callback_data='11:00'),
@@ -72,28 +73,29 @@ def choose_time(bot, update, user_data):
               IlKB("19:00", callback_data='19:00'),
               IlKB("20:00", callback_data='20:00')]]
    reply_markup = InlineKeyboardMarkup(keyboard)
-   bot.edit_message_reply_markup(chat_id=query.message.chat_id,
-                                 message_id=query.message.message_id,
-                                 reply_markup=reply_markup)
+   context.bot.edit_message_reply_markup(chat_id=query.message.chat_id,
+                                         message_id=query.message.message_id,
+                                         reply_markup=reply_markup)
    return 'SOU_SEND'
 
-def send(bot, update, user_data, job_queue):
+def send(update,context): #(bot, update, user_data, job_queue):
    # here I get my old selection
    #LG.info('received request: %s'%(update.message.text))
    places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
              'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
              'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
              'pegalajar': 12, 'otivar': 13}
-   query = update.callback_query
-   chatID = query.message.chat_id
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
    selection = query.data
-   place = user_data['sou_place']
+   place = context.user_data['sou_place']
    index = places[place]
-   user_data['sou_time'] = selection
-   bot.edit_message_text(chat_id=query.message.chat_id,
-                         message_id=query.message.message_id,
-                         text=u"Selected: %s"%(query.data))
-   date = ' '.join([user_data['sou_date'],user_data['sou_time']])
+   context.user_data['sou_time'] = selection
+   context.bot.edit_message_text(chat_id=chatID,
+                                 message_id=query.message.message_id,
+                                 text=u"Selected: %s"%(query.data))
+   date = ' '.join( [context.user_data['sou_date'],
+                     context.user_data['sou_time']])
    date = dt.datetime.strptime(date,'%d/%m/%Y %H:%M')
    fol,_ = tool.locate(date,'')
    H = date.strftime('%H%M')
@@ -105,8 +107,7 @@ def send(bot, update, user_data, job_queue):
    txt = "Sounding for _%s_ at %s"%(place.capitalize(), date.strftime('%d/%m/%Y-%H:%M'))
    if T != None:
       txt += '\nExpected temperature: *%s°C*'%(T)
-   tool.send_picture(bot, chatID, job_queue, f_tmp, msg=txt, t=180,delete=True)
+   tool.send_picture(update,context, f_tmp, msg=txt, t=180,delete=True)
    os.system(f'rm {f_tmp}')
-   #tool.send_picture(bot, chatID, job_queue, url_picture, msg=txt, t=30,delete=True)
    user_data = {}
    return
