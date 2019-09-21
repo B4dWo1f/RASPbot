@@ -179,7 +179,7 @@ D.add_handler(conversation_handler)
 
 
 # Broadcast
-J.run_daily(broadcast, dt.time(8,15))
+J.run_daily(broadcast, dt.time(9,0))
 #J.run_daily(broadcast, dt.time(13,00))
 #J.run_daily(broadcast, dt.time(15,55))
 #J.run_daily(broadcast, dt.time(18,15))
