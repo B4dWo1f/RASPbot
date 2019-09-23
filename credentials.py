@@ -3,13 +3,18 @@
 
 from base64 import b64decode as decode
 from base64 import b64encode as encode
+import string
+from random import choice
 from functools import wraps
 import os
 here = os.path.dirname(os.path.realpath(__file__))
 
-ADMINS_un = open(here+'/username.whitelist','r').read().strip().splitlines()
-ADMINS_id = open(here+'/chatid.whitelist','r').read().strip().splitlines()
-ADMINS_id = [int(x) for x in ADMINS_id]
+ADMINS = open(here+'/whitelist.private','r').read().strip().splitlines()
+ADMINS_id = [int(x.split(',')[0]) for x in ADMINS]
+ADMINS_un = [x.split(',')[1] for x in ADMINS]
+#ADMINS_un = open(here+'/username.whitelist','r').read().strip().splitlines()
+#ADMINS_id = open(here+'/chatid.whitelist','r').read().strip().splitlines()
+#ADMINS_id = [int(x) for x in ADMINS_id]
 
 def encode_credentials(key, chatid, fname='bot.token'):
    """ Encode the key and main chatid in a file """
@@ -26,18 +31,25 @@ def get_credentials(api_file=here+'/telegram_bot.private'):
    bot_chatID = decode(api_key[1]).decode('utf-8')
    return bot_token, bot_chatID
 
+def rand_string(pwdSize=8):
+   """ Generates a random string of letters and digits with pwdSize length """
+   ## all possible letters and numbers
+   chars = string.ascii_letters + string.digits
+   return ''.join((choice(chars)) for x in range(pwdSize))
+
+
 def restricted(func):
    """ Decorator to restrict the use of certain functions """
    @wraps(func)
-   def wrapped(bot, update, *args, **kwargs):
+   def wrapped(update, context, *args, **kwargs):
       user_id = update.effective_user.id
       user_nm = update.effective_user.username
       chatID = update.message.chat_id
       if user_id not in ADMINS_id or user_nm not in ADMINS_un:
          txt = "Unauthorized access denied for %s (%s)"%(user_nm,user_id)
-         bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
+         context.bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
          return
-      return func(bot, update, *args, **kwargs)
+      return func(update, context, *args, **kwargs)
    return wrapped
 
 if __name__ == '__main__':
