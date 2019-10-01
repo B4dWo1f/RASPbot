@@ -189,7 +189,8 @@ def general(update,context,prop): #(bot,update,job_queue,args,prop):
       return
    prop_names = {'sfcwind':'Surface wind', 'blwind':'BL wind',
                  'bltopwind':'top BL wind', 'cape':'CAPE',
-                 'wstar': 'Thermal Height', 'hbl': 'Height of BL Top'}
+                 'wstar': 'Thermal Height', 'hbl': 'Height of BL Top',
+                 'blcloudpct': '1h Accumulated Rain'}
    txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
    if f[-4:] == '.mp4': send_func = send_video
    elif f[-4:] in ['.png','.jpg']: send_func = send_picture
@@ -216,6 +217,8 @@ def sfcwind(update, context):   general(update,context,'sfcwind')
 def blwind(update, context):    general(update,context,'blwind')
 
 def bltopwind(update, context): general(update,context,'bltopwind')
+
+def blcloud(update, context):   general(update,context,'blcloudpct')
 
 
 def tormentas(update, context):  #(bot,update,job_queue,args):

@@ -164,6 +164,8 @@ D.add_handler(CH('cape', tool.cape, pass_args=True, pass_job_queue=True))
 D.add_handler(CH('techo', tool.techo, pass_args=True, pass_job_queue=True))
 # Thermal
 D.add_handler(CH('thermal', tool.thermal, pass_args=True, pass_job_queue=True))
+# Clouds
+D.add_handler(CH('clouds', tool.blcloud, pass_args=True, pass_job_queue=True))
 # Tormentas
 D.add_handler(CH('tormentas', tool.tormentas, pass_args=True, pass_job_queue=True))
 
