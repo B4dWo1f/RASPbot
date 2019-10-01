@@ -1,4 +1,9 @@
-fcst - Forecast for a specific time. Usage: /fcst %d/%m/%Y-%H
+sfcwind - Surface Wind for a specific time. Usage: /sfcwind %d/%m/%Y-%H
+blwind - BL Wind for a specific time. Usage: /blwind %d/%m/%Y-%H
+bltopwind - top BL Wind for a specific time. Usage: /bltopwind %d/%m/%Y-%H
+cape - CAPE for a specific time. Usage: /cape %d/%m/%Y-%H
+thermal - Thermal strength for a specific time. Usage: /thermal %d/%m/%Y-%H
+techo - Techo for a specific time. Usage: /techo %d/%m/%Y-%H
 sounding - Sounding for a specific place and time. Usage: /sounding {place} %d/%m/%Y-%H
-reload - Restart de bot
-stop - Completely stop the bot
+tormentas - Aemet mountain forecast. Usage: /tormentas {place} {day}
+clouds - BL Cloud cover for a specific time. Usage: /techo %d/%m/%Y-%H
