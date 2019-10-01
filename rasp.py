@@ -12,6 +12,7 @@ from threading import Thread
 import sounding_menu as sm
 import datetime as dt
 import tool
+import admin
 import sys
 import os
 here = os.path.dirname(os.path.realpath(__file__))
@@ -136,6 +137,7 @@ def close_poll(context):
 
 # Start Bot ####################################################################
 token, Bcast_chatID = CR.get_credentials(here+'/rasp.token')
+token, Bcast_chatID = CR.get_credentials(here+'/Tester.token')
 
 U = Updater(token=token, use_context=True)
 D = U.dispatcher
@@ -162,6 +164,8 @@ D.add_handler(CH('cape', tool.cape, pass_args=True, pass_job_queue=True))
 D.add_handler(CH('techo', tool.techo, pass_args=True, pass_job_queue=True))
 # Thermal
 D.add_handler(CH('thermal', tool.thermal, pass_args=True, pass_job_queue=True))
+# Clouds
+D.add_handler(CH('clouds', tool.blcloud, pass_args=True, pass_job_queue=True))
 # Tormentas
 D.add_handler(CH('tormentas', tool.tormentas, pass_args=True, pass_job_queue=True))
 
@@ -174,6 +178,16 @@ conversation_handler = ConversationHandler(
       fallbacks = [CH('sounding', sm.choose_place, pass_user_data=True)])
 D.add_handler(conversation_handler)
 ################################################################################
+
+## Setup DB for files ##########################################################
+field_types = ['year integer', 'month integer', 'day integer', 'hour integer',
+               'minute integer',
+               'folder text','WF_time integer', 'WF_prop text', 'file_id text']
+dbfile = 'files.db'
+table = 'files'
+conn,c = admin.connect(dbfile)
+admin.create_db(conn, c, table, ','.join(field_types))
+conn.close()
 
 
 # Broadcast

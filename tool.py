@@ -8,12 +8,14 @@ from urllib.request import urlretrieve
 import datetime as dt
 import aemet
 import re
+import admin
 import logging
 import os
 here = os.path.dirname(os.path.realpath(__file__))
 HOME = os.getenv('HOME')
 LG = logging.getLogger(__name__)
-f_id_files = here+'/pics_ids.txt'
+#f_id_files = here+'/pics_ids.txt'
+f_id_files = here+'/files.db'
 
 def call_delete(context: telegram.ext.CallbackContext):
    """
@@ -165,6 +167,7 @@ def locate(date,prop):
 def general(update,context,prop): #(bot,update,job_queue,args,prop):
    """ echo-like service to check system status """
    LG.info('received request: %s'%(update.message.text))
+   conn,c = admin.connect('files.db')
    try: chatID = update['message']['chat']['id']
    except TypeError: chatID = update['callback_query']['message']['chat']['id']
    d = ' '.join(context.args)
@@ -186,22 +189,21 @@ def general(update,context,prop): #(bot,update,job_queue,args,prop):
       return
    prop_names = {'sfcwind':'Surface wind', 'blwind':'BL wind',
                  'bltopwind':'top BL wind', 'cape':'CAPE',
-                 'wstar': 'Thermal Height', 'hbl': 'Height of BL Top'}
+                 'wstar': 'Thermal Height', 'hbl': 'Height of BL Top',
+                 'blcloudpct': '1h Accumulated Rain'}
    txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
    if f[-4:] == '.mp4': send_func = send_video
    elif f[-4:] in ['.png','.jpg']: send_func = send_picture
-   try:
-      f = os.popen("grep %s %s"%(f, f_id_files)).read().strip().split()[-1]
-   except: pass
+   ff = admin.get_file(conn,c, fol, date.strftime('%H%M'), prop,'files')
+   if len(ff) == 1: f, =ff[0]
    M = send_func(update,context, f, msg=txt, t=180,delete=True)
-   #M = send_func(bot, chatID, job_queue, f, msg=txt, t=180,delete=True)
    try: f_ID = M['photo'][-1]['file_id']
    except: f_ID = M['animation']['file_id']
    if f[0] == '/':   # means that f is the abs path of the file
-      with open(f_id_files,'a') as fw:
-         fw.write(dt.datetime.now().strftime('%d/%m/%Y-%H:%M'))
-         fw.write('   '+str(f)+'   '+str(f_ID)+'\n')
-      fw.close()
+      now = dt.datetime.now()
+      admin.insert_file(conn,c, now.year, now.month, now.day, now.hour,
+                        now.minute, 'SC2',date.strftime('%H%M'), prop,
+                        str(f_ID),'files')
 
 
 def techo(update, context):     general(update,context,'hbl')
@@ -215,6 +217,8 @@ def sfcwind(update, context):   general(update,context,'sfcwind')
 def blwind(update, context):    general(update,context,'blwind')
 
 def bltopwind(update, context): general(update,context,'bltopwind')
+
+def blcloud(update, context):   general(update,context,'blcloudpct')
 
 
 def tormentas(update, context):  #(bot,update,job_queue,args):
