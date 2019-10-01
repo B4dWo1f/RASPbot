@@ -137,7 +137,6 @@ def close_poll(context):
 
 # Start Bot ####################################################################
 token, Bcast_chatID = CR.get_credentials(here+'/rasp.token')
-token, Bcast_chatID = CR.get_credentials(here+'/Tester.token')
 
 U = Updater(token=token, use_context=True)
 D = U.dispatcher
