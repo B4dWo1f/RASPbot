@@ -2,17 +2,18 @@
 # -*- coding: UTF-8 -*-
 
 ## Telegram libraries
-from telegram import ChatAction, ParseMode
-from telegram.ext import Updater
-from telegram.ext import CommandHandler as CH
 from telegram.ext import MessageHandler, Filters, ConversationHandler
 from telegram.ext import CallbackQueryHandler as CQH
+from telegram.ext import CommandHandler as CH
+from telegram import ChatAction, ParseMode
+from telegram.ext import Updater
 # Telegram custom libraries
-import aemet
-import credentials as CR
 import sounding_menu as sm
-import tool
+import credentials as CR
+import channel
 import admin
+import aemet
+import tool
 ## System libraries
 import datetime as dt
 from threading import Thread
@@ -64,8 +65,6 @@ def restart(update,context):
 
 # Start Bot ####################################################################
 token, Bcast_chatID = CR.get_credentials(here+'/rasp.token')
-token, Bcast_chatID = CR.get_credentials(here+'/Tester.token')
-Bcast_chatID = -322578807
 
 U = Updater(token=token, use_context=True)
 D = U.dispatcher
@@ -121,9 +120,8 @@ conn.close()
 
 
 # Broadcast
-import channel
-J.run_daily(channel.broadcast, dt.time(10,30), context=(Bcast_chatID,))
-J.run_daily(channel.close_poll, dt.time(22,30), context=(Bcast_chatID,)) 
+J.run_daily(channel.broadcast, dt.time(9,0), context=(Bcast_chatID,))
+J.run_daily(channel.close_poll, dt.time(23,50), context=(Bcast_chatID,)) 
 #23,50))
 
 
