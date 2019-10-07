@@ -55,7 +55,7 @@ def make_frentes_gif(vidname='/tmp/frentes.mp4'):
    com += f' -b:v 1500k -acodec libmp3lame -ab 160k {vidname}'
    com += ' > /dev/null 2> /dev/null'
    os.system(com)
-   os.system(f'rm /tmp/frentes_*.jpg frentes_temp.mp4')
+   os.system(f'rm /tmp/frentes_*.jpg /tmp/frentes_temp.mp4')
    return all(fails)
 
 
@@ -66,11 +66,10 @@ def send_frentes(chatID,bot):
    now = dt.datetime.now()
    tday = now.date()
    LG.info(f"Sending frentes")
-   txt = 'For more information go to:\n'
-   txt += ' http://www.aemet.es/es/eltiempo/prediccion/mapa\_frentes'
-   vid = open(vid, 'rb')
+   txt = ' http://www.aemet.es/es/eltiempo/prediccion/mapa\_frentes'
+   video = open(vid, 'rb')
    bot.send_chat_action(chatID, action=ChatAction.UPLOAD_VIDEO)
-   M = bot.send_video(chatID,vid, caption=txt, timeout=300,
+   M = bot.send_video(chatID,video, caption=txt, timeout=300,
                                                disable_notification=True,
                                                parse_mode=ParseMode.MARKDOWN)
    LG.debug(f"frentes sent")
@@ -83,9 +82,8 @@ def send_sfcwind(chatID,bot):
    now = dt.datetime.now()
    tday = now.date()
    txt = 'Surface wind for *%s*\n'%(tday.strftime('%d/%m/%Y'))
-   txt += 'For more information go to:\n'
    #txt += ' http://raspuri.mooo.com/RASP/index.php'
-   txt += ' http://meteonube.hopto.org'
+   txt = ' http://meteonube.hopto.org'
    vid = f'{HOME}/Documents/RASP/PLOTS/w2/SC2/sfcwind.mp4'
    vid = open(vid, 'rb')
    bot.send_chat_action(chatID, action=ChatAction.UPLOAD_VIDEO)
