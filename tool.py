@@ -26,9 +26,9 @@ def call_delete(context: telegram.ext.CallbackContext):
    m = context.bot.delete_message(chatID, msgID)
 
 
-def send_media(media_file,bot,chatID, caption='',
-                                      t_del=60, t_renew=600,
-                                      dis_notif=False):
+def send_media(bot,chatID,job_queue, media_file, caption='',
+                                                 t_del=None, t_renew=600,
+                                                 dis_notif=False):
    """
    media_file: file to be sent
    t_renew: if file was registered in the database longer than t_renew seconds,
@@ -37,9 +37,11 @@ def send_media(media_file,bot,chatID, caption='',
    if media_file[-4:] in ['.jpg', '.png']:
       send_func = bot.send_photo
       media = open(media_file,'rb')
+      Action = ChatAction.UPLOAD_PHOTO
    elif media_file[-4:] in ['.mp4', '.gif']:
       send_func = bot.send_video
       media = open(media_file,'rb')
+      Action = ChatAction.UPLOAD_VIDEO
 
    conn,c = admin.connect('RaspBot.db')
    now = dt.datetime.now()
@@ -56,6 +58,7 @@ def send_media(media_file,bot,chatID, caption='',
          LG.info(f'{media_file} is too old, deleting entry ')
          admin.remove_file(conn,'fname', media_file)
    except EntryNotFound: pass
+   bot.send_chat_action(chat_id=chatID, action=Action)
    M = send_func(chatID, media, caption=caption,
                                 timeout=300, disable_notification=dis_notif,
                                 parse_mode=ParseMode.MARKDOWN)
@@ -64,6 +67,9 @@ def send_media(media_file,bot,chatID, caption='',
    if not skip:
       admin.insert_file(conn, now.year,now.month,now.day,now.hour,now.minute,
                         media_file, file_id)
+   if t_del != None:
+      msgID = M.message_id
+      job_queue.run_once(call_delete,t_del, context=(chatID, msgID))
 
 
 def rand_name(pwdSize=8):
@@ -156,6 +162,7 @@ def general(update,context,prop): #(bot,update,job_queue,args,prop):
    try: chatID = update['message']['chat']['id']
    except TypeError: chatID = update['callback_query']['message']['chat']['id']
    bot = context.bot
+   job_queue = context.job_queue
    d = ' '.join(context.args)
    try: date = parser_date(d)
    except:
@@ -181,7 +188,9 @@ def general(update,context,prop): #(bot,update,job_queue,args,prop):
       txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y'))
    else:
       txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
-   send_media(f,bot,chatID, caption=txt,t_del=60,t_renew=600,dis_notif=False)
+   send_media(bot,chatID,job_queue, f, caption=txt,
+                                       t_del=60,t_renew=600,
+                                       dis_notif=False)
 
 
 def techo(update, context):     general(update,context,'hbl')

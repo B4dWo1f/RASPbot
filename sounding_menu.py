@@ -90,6 +90,7 @@ def send(update,context): #(bot, update, user_data, job_queue):
    query = update.callback_query
    selection = query.data
    bot = context.bot
+   job_queue = context.job_queue
 
    place = context.user_data['sou_place']
    index = places[place]
@@ -111,9 +112,9 @@ def send(update,context): #(bot, update, user_data, job_queue):
    if T != None:
       txt += '\nExpected temperature: *%s°C*'%(T)
    #tool.send_media(update,context, f_tmp, msg=txt, t=180,delete=True)
-   tool.send_media(f_tmp,bot,chatID, caption=txt,
-                                     t_del=60, t_renew=600,
-                                     dis_notif=False)
+   tool.send_media(bot,chatID,job_queue, f_tmp, caption=txt,
+                                         t_del=60, t_renew=600,
+                                         dis_notif=False)
    os.system(f'rm {f_tmp}')
    user_data = {}
    return
