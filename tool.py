@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import common
 from telegram import ChatAction, ParseMode
 import telegram
 import string
@@ -9,6 +10,7 @@ import datetime as dt
 import aemet
 import re
 import admin
+from admin import EntryNotFound
 import logging
 import os
 here = os.path.dirname(os.path.realpath(__file__))
@@ -24,61 +26,51 @@ def call_delete(context: telegram.ext.CallbackContext):
    chatID, msgID = context.job.context
    m = context.bot.delete_message(chatID, msgID)
 
-def send_video(update,context, vid, msg='',
-               t=60,delete=True,dis_notif=False,warn_wait=True):
-   try: chatID = update['message']['chat']['id']
-   except TypeError: chatID = update['callback_query']['message']['chat']['id']
-   func = context.bot.send_video
-   if vid[:4] == 'http': video = vid
-   else:
-      try:
-         video = open(vid, 'rb')  # TODO raise and report if file not found
-         if warn_wait:
-            txt = 'This usually takes a few seconds... be patient'
-            M1 = context.bot.send_message(chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
-      except:
-         video = vid
-         func = context.bot.send_animation
-   context.bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_VIDEO)
-   M = func(chatID, video, caption=msg,
-                              timeout=300, disable_notification=dis_notif,
-                              parse_mode=ParseMode.MARKDOWN)
-   t=30
-   if delete:
-      tdel = dt.datetime.now()+dt.timedelta(seconds=t)
-      LG.debug('vid %s to be deleted at %s'%(vid,tdel))
-      msgID = M.message_id
-      context.job_queue.run_once(call_delete,t, context=(chatID, msgID))
-   return M
 
+def send_media(bot,chatID,job_queue, media_file, caption='',
+                                                 t_del=None, t_renew=600,
+                                                 dis_notif=False):
+   """
+   media_file: file to be sent
+   t_renew: if file was registered in the database longer than t_renew seconds,
+            send the file again and replace the entry
+   """
+   if media_file[-4:] in ['.jpg', '.png']:
+      send_func = bot.send_photo
+      media = open(media_file,'rb')
+      Action = ChatAction.UPLOAD_PHOTO
+   elif media_file[-4:] in ['.mp4', '.gif']:
+      send_func = bot.send_video
+      media = open(media_file,'rb')
+      Action = ChatAction.UPLOAD_VIDEO
 
-def send_picture(update,context, pic, msg='',t=60,delete=True,dis_notif=False):
-   """
-    Send a picture and, optionally, remove it locally/remotely (rm/delete)
-    pic = photo to send
-    msg = caption of the picture
-    t = time to wait to delete the remote picture
-    delete = remove remote file t seconds after sending
-    dis_notif = Disable sound notification
-   """
-   try: chatID = update['message']['chat']['id']
-   except TypeError: chatID = update['callback_query']['message']['chat']['id']
-   LG.info('Sending picture: %s'%(pic))
-   if pic[:4] == 'http': photo = pic
-   else:
-      try: photo = open(pic, 'rb')  # TODO raise and report if file not found
-      except: photo = pic
-   context.bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
-   M = context.bot.send_photo(chatID, photo, caption=msg,
-                              timeout=300, disable_notification=dis_notif,
-                              parse_mode=ParseMode.MARKDOWN)
-   t=30
-   if delete:
-      tdel = dt.datetime.now()+dt.timedelta(seconds=t)
-      LG.debug('pic %s to be deleted at %s'%(pic,tdel))
+   conn,c = admin.connect('RaspBot.db')
+   now = dt.datetime.now()
+   skip = False
+   try:
+      ff = admin.get_file(conn, 'fname', media_file)
+      date = dt.datetime(*list(map(int,ff[0][:5])))
+      if (now-date).total_seconds() < t_renew:
+         media = ff[0][-1]
+         if send_func == bot.send_video:
+            send_func = bot.send_animation
+         skip = True
+      else:
+         LG.info(f'{media_file} is too old, deleting entry ')
+         admin.remove_file(conn,'fname', media_file)
+   except EntryNotFound: pass
+   bot.send_chat_action(chat_id=chatID, action=Action)
+   M = send_func(chatID, media, caption=caption,
+                                timeout=300, disable_notification=dis_notif,
+                                parse_mode=ParseMode.MARKDOWN)
+   try: file_id = M['photo'][-1]['file_id']
+   except IndexError: file_id = M['animation']['file_id']
+   if not skip:
+      admin.insert_file(conn, now.year,now.month,now.day,now.hour,now.minute,
+                        media_file, file_id)
+   if t_del != None:
       msgID = M.message_id
-      context.job_queue.run_once(call_delete,t, context=(chatID, msgID))
-   return M
+      job_queue.run_once(call_delete,t_del, context=(chatID, msgID))
 
 
 def rand_name(pwdSize=8):
@@ -167,9 +159,11 @@ def locate(date,prop):
 def general(update,context,prop): #(bot,update,job_queue,args,prop):
    """ echo-like service to check system status """
    LG.info('received request: %s'%(update.message.text))
-   conn,c = admin.connect('files.db')
+   #conn,c = admin.connect('files.db')
    try: chatID = update['message']['chat']['id']
    except TypeError: chatID = update['callback_query']['message']['chat']['id']
+   bot = context.bot
+   job_queue = context.job_queue
    d = ' '.join(context.args)
    try: date = parser_date(d)
    except:
@@ -180,30 +174,25 @@ def general(update,context,prop): #(bot,update,job_queue,args,prop):
       txt += 'ex: /fcst 18/05/2019-13:00\n'
       txt += '    /fcst mañana 13:00\n'
       txt += '    /fcst al otro 14'
-      context.bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
+      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
       return
    fol,f = locate(date, prop)
    if f == None:
       txt = 'Sorry, forecast not available'
-      context.bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
+      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
       return
    prop_names = {'sfcwind':'Surface wind', 'blwind':'BL wind',
                  'bltopwind':'top BL wind', 'cape':'CAPE',
                  'wstar': 'Thermal Height', 'hbl': 'Height of BL Top',
                  'blcloudpct': '1h Accumulated Rain'}
-   txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
-   if f[-4:] == '.mp4': send_func = send_video
-   elif f[-4:] in ['.png','.jpg']: send_func = send_picture
-   ff = admin.get_file(conn,c, fol, date.strftime('%H%M'), prop,'files')
-   if len(ff) == 1: f, =ff[0]
-   M = send_func(update,context, f, msg=txt, t=180,delete=True)
-   try: f_ID = M['photo'][-1]['file_id']
-   except: f_ID = M['animation']['file_id']
-   if f[0] == '/':   # means that f is the abs path of the file
-      now = dt.datetime.now()
-      admin.insert_file(conn,c, now.year, now.month, now.day, now.hour,
-                        now.minute, 'SC2',date.strftime('%H%M'), prop,
-                        str(f_ID),'files')
+   if f[-4:] == '.mp4':
+      txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y'))
+   else:
+      txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
+   RP = common.load(fname='config.ini')
+   send_media(bot,chatID,job_queue, f, caption=txt,
+                                       t_del= RP.t_del, t_renew=RP.t_renew,
+                                       dis_notif=False)
 
 
 def techo(update, context):     general(update,context,'hbl')
