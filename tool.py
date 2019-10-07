@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import common
 from telegram import ChatAction, ParseMode
 import telegram
 import string
@@ -188,8 +189,9 @@ def general(update,context,prop): #(bot,update,job_queue,args,prop):
       txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y'))
    else:
       txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
+   RP = common.load(fname='config.ini')
    send_media(bot,chatID,job_queue, f, caption=txt,
-                                       t_del=5*60, t_renew=6*24*24,
+                                       t_del= RP.t_del, t_renew=RP.t_renew,
                                        dis_notif=False)
 
 
