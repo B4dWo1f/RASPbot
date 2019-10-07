@@ -65,6 +65,7 @@ def restart(update,context):
 
 # Start Bot ####################################################################
 token, Bcast_chatID = CR.get_credentials(here+'/rasp.token')
+token, Bcast_chatID = CR.get_credentials(here+'/Tester.token')
 
 U = Updater(token=token, use_context=True)
 D = U.dispatcher
@@ -109,20 +110,11 @@ D.add_handler(conversation_handler)
 ################################################################################
 
 ## Setup DB for files ##########################################################
-field_types = ['year integer', 'month integer', 'day integer', 'hour integer',
-               'minute integer',
-               'folder text','WF_time integer', 'WF_prop text', 'file_id text']
-dbfile = 'files.db'
-table = 'files'
-conn,c = admin.connect(dbfile)
-admin.create_db(conn, c, table, ','.join(field_types))
-conn.close()
-
+admin.create_db('RaspBot.db')
 
 # Broadcast
 J.run_daily(channel.broadcast, dt.time(9,0), context=(Bcast_chatID,))
 J.run_daily(channel.close_poll, dt.time(23,50), context=(Bcast_chatID,)) 
-#23,50))
 
 
 U.start_polling()
