@@ -113,7 +113,7 @@ def send(update,context): #(bot, update, user_data, job_queue):
       txt += '\nExpected temperature: *%s°C*'%(T)
    #tool.send_media(update,context, f_tmp, msg=txt, t=180,delete=True)
    tool.send_media(bot,chatID,job_queue, f_tmp, caption=txt,
-                                         t_del=60, t_renew=600,
+                                         t_del=5*60, t_renew=6*60*60,
                                          dis_notif=False)
    os.system(f'rm {f_tmp}')
    user_data = {}

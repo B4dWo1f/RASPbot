@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import common
+RP = common.load(fname='config.ini')
+
 ## Telegram libraries
 from telegram.ext import MessageHandler, Filters, ConversationHandler
 from telegram.ext import CallbackQueryHandler as CQH
@@ -19,19 +22,28 @@ import datetime as dt
 from threading import Thread
 import sys
 import os
-here = os.path.dirname(os.path.realpath(__file__))
-HOME = os.getenv('HOME')
+#here = os.path.dirname(os.path.realpath(__file__))
+#HOME = os.getenv('HOME')
 import logging
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=RP.log_lv,
                     format='%(asctime)s %(name)s:%(levelname)s - %(message)s',
                     datefmt='%Y/%m/%d-%H:%M:%S',
-                    filename=here+'/main.log', filemode='w')
+                    filename=RP.log, filemode='w')
 LG = logging.getLogger('main')
 
 
 def start(update, context):
+   """ Welcome message and user registration """
+   ch = update.message.chat
+   chatID = ch.id
+   uname = ch.username
+   fname = ch.first_name
+   lname = ch.last_name
+   isadmin = ch.id in CR.ADMINS_id
    txt = "I'm a bot, please talk to me!"
    context.bot.send_message(chat_id=update.message.chat_id, text=txt)
+   conn,c = admin.connect(RP.DBname)
+   admin.insert_user(conn,chatID,uname,fname,lname,isadmin)
 
 def shutdown():
    U.stop()
@@ -64,8 +76,7 @@ def restart(update,context):
 
 
 # Start Bot ####################################################################
-token, Bcast_chatID = CR.get_credentials(here+'/rasp.token')
-token, Bcast_chatID = CR.get_credentials(here+'/Tester.token')
+token, Bcast_chatID = CR.get_credentials(RP.token_file)
 
 U = Updater(token=token, use_context=True)
 D = U.dispatcher

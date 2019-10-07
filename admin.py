@@ -116,16 +116,17 @@ def get_file(conn,field,value):
    else: raise EntryNotFound
 
 def remove_file(conn,field,value):
-   return remove_entry(conn,'files',field,value)
+   ret = remove_entry(conn,'files',field,value)
 
 
 ## USERS #######################################################################
 def insert_user(conn,chatid,uname,fname,lname,isadmin):
    c = conn.cursor()
    with conn:
-      ff = get_user(conn,'username','@user')
-      if len(ff) > 0: LG.warning('Entry already exists')
-      else:
+      try:
+         ff = get_user(conn,'username',uname)
+         LG.warning('User already exists')
+      except EntryNotFound:
          c.execute(f"INSERT INTO users VALUES (:pl0, :pl1, :pl2, :pl3, :pl4)",
                    {'pl0': chatid, 'pl1': uname, 'pl2': fname,
                     'pl3': lname, 'pl4':isadmin})
@@ -133,7 +134,9 @@ def insert_user(conn,chatid,uname,fname,lname,isadmin):
 
 
 def get_user(conn,field,value):
-   return get_entry(conn,'users',field,value)
+   ret = get_entry(conn,'users',field,value)
+   if len(ret) > 0: return ret
+   else: raise EntryNotFound
 
 def remove_user(conn,field,value):
    return remove_entry(conn,'users',field,value)

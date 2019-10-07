@@ -189,7 +189,7 @@ def general(update,context,prop): #(bot,update,job_queue,args,prop):
    else:
       txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
    send_media(bot,chatID,job_queue, f, caption=txt,
-                                       t_del=60,t_renew=600,
+                                       t_del=5*60, t_renew=6*24*24,
                                        dis_notif=False)
 
 
