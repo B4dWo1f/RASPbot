@@ -12,17 +12,12 @@ here = os.path.dirname(os.path.realpath(__file__))
 ADMINS = open(here+'/whitelist.private','r').read().strip().splitlines()
 ADMINS_id = [int(x.split(',')[0]) for x in ADMINS]
 ADMINS_un = [x.split(',')[1] for x in ADMINS]
-#ADMINS_un = open(here+'/username.whitelist','r').read().strip().splitlines()
-#ADMINS_id = open(here+'/chatid.whitelist','r').read().strip().splitlines()
-#ADMINS_id = [int(x) for x in ADMINS_id]
 
-def encode_credentials(key, chatid, fname='bot.token'):
+def encode_credentials(key, chatid):  #, fname='bot.token'):
    """ Encode the key and main chatid in a file """
    key    = encode(bytes(key,'utf-8')).decode('utf-8')
    chatid = encode(bytes(chatid,'utf-8')).decode('utf-8')
-   with open(fname,'w') as f:
-      f.write( key +'\n'+ chatid +'\n')
-   f.close()
+   return key, chatid
 
 def get_credentials(api_file=here+'/telegram_bot.private'):
    """ decode the key and main chatid from a file """
@@ -54,8 +49,15 @@ def restricted(func):
 
 if __name__ == '__main__':
    import sys
-   try: key,chatID = sys.argv[1:]
+   try:
+      key,chatID = sys.argv[1:]
+      key,chatID = encode_credentials(key, chatID)
+      print(key)
+      print(chatID)
+   except ValueError:
+      token,chatID = get_credentials(sys.argv[1])
+      print(token)
+      print(chatID)
    except IndexError:
       print('File not specified')
       exit()
-   encode_credentials(key, chatID)
