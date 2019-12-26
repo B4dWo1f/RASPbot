@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="256.73538mm"
+   height="270.90729mm"
+   viewBox="0 0 256.73538 270.90729"
+   version="1.1"
+   id="svg8"
+   enable-background="new"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="testingsc4_scal.svg">
+  <defs
+     id="defs2">
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter355">
+      <feBlend
+         inkscape:collect="always"
+         mode="darken"
+         in2="BackgroundImage"
+         id="feBlend357" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.4"
+     inkscape:cx="293.58465"
+     inkscape:cy="471.11096"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer2"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="3200"
+     inkscape:window-height="1726"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Basemap"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(23.367691,-22.867691)">
+    <image
+       sodipodi:absref="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/terrain.png"
+       xlink:href="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/terrain.png"
+       width="256.73538"
+       height="251.26462"
+       preserveAspectRatio="none"
+       id="image239"
+       x="-23.367691"
+       y="22.867691" />
+    <image
+       sodipodi:absref="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/ccaa.png"
+       xlink:href="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/ccaa.png"
+       width="256.73538"
+       height="251.26462"
+       preserveAspectRatio="none"
+       id="image206"
+       x="-23.367691"
+       y="22.867691" />
+    <image
+       sodipodi:absref="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/rivers.png"
+       xlink:href="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/rivers.png"
+       width="256.73538"
+       height="251.26462"
+       preserveAspectRatio="none"
+       id="image217"
+       x="-23.367691"
+       y="22.867691" />
+    <image
+       sodipodi:absref="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/takeoffs.png"
+       xlink:href="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/takeoffs.png"
+       width="256.73538"
+       height="251.26462"
+       preserveAspectRatio="none"
+       id="image228"
+       x="-23.367691"
+       y="22.867691" />
+    <image
+       sodipodi:absref="/home/n03l/Documents/RASP/PLOTS/XXpropXX_light.png"
+       xlink:href="/home/n03l/Documents/RASP/PLOTS/XXpropXX_light.png"
+       width="191.17734"
+       height="19.642666"
+       preserveAspectRatio="none"
+       id="image320"
+       x="9.4113312"
+       y="274.13232" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Scalar"
+     transform="translate(23.367691,-22.867691)"
+     style="filter:url(#filter355)">
+    <image
+       width="256.73538"
+       height="251.26462"
+       preserveAspectRatio="none"
+       id="image184"
+       x="-23.367691"
+       y="22.867691"
+       xlink:href="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/XXhourXX_XXpropXX.png"
+       sodipodi:absref="/home/n03l/Documents/RASP/PLOTS/w2/SC4+2/XXhourXX_XXpropXX.png"
+       style="opacity:0.6" />
+  </g>
+</svg>

@@ -35,6 +35,8 @@ def send_media(bot,chatID,job_queue, media_file, caption='',
    t_renew: if file was registered in the database longer than t_renew seconds,
             send the file again and replace the entry
    """
+   print('------- Sending')
+   print(media_file,caption)
    if media_file[-4:] in ['.jpg', '.png']:
       send_func = bot.send_photo
       media = open(media_file,'rb')
@@ -45,24 +47,33 @@ def send_media(bot,chatID,job_queue, media_file, caption='',
       Action = ChatAction.UPLOAD_VIDEO
 
    conn,c = admin.connect('RaspBot.db')
+   print('hey')
    now = dt.datetime.now()
    skip = False
    try:
+      print('trying')
       ff = admin.get_file(conn, 'fname', media_file)
+      print(ff)
       date = dt.datetime(*list(map(int,ff[0][:5])))
+      print(date)
       if (now-date).total_seconds() < t_renew:
+         print('no renew')
          media = ff[0][-1]
          if send_func == bot.send_video:
             send_func = bot.send_animation
          skip = True
       else:
+         print('renew')
          LG.info(f'{media_file} is too old, deleting entry ')
          admin.remove_file(conn,'fname', media_file)
    except EntryNotFound: pass
+   print('you')
    bot.send_chat_action(chat_id=chatID, action=Action)
+   print('==>',media)
    M = send_func(chatID, media, caption=caption,
                                 timeout=300, disable_notification=dis_notif,
                                 parse_mode=ParseMode.MARKDOWN)
+   print('sent')
    try: file_id = M['photo'][-1]['file_id']
    except IndexError: file_id = M['animation']['file_id']
    if not skip:
@@ -131,21 +142,63 @@ def parser_date(line):
       else: return date.replace(hour=h, minute=m, second=0, microsecond=0)
    except: raise
 
+def build_image(date,prop,prop_vec,bot,chatID,job_queue):
+   """
+   sed -e "s/XXhourXX/$hour/" w2_"$SC"_vec_scal_template.svg | sed -e "s/XXpropXX/$prop/" | sed -e "s/XXprop_vecXX/$prop_vec/" > foo.svg
+   """
+   f_tmp = '/tmp/test.png'
+   svg_tmp = '/tmp/foo.svg'
+   print('Building')
+   print(date)
+   sc = get_sc(date).lower()
+   if prop_vec != None: fname = f'w2_{sc}_vec_scal_template.svg'
+   else: fname = f'w2_{sc}_scal_template.svg'
+   print(' ',fname)
+   svg = open(fname, 'r').read().strip()
+   svg = svg.replace('XXhourXX', f'{date.hour*100:04d}')
+   svg = svg.replace('XXpropXX', f'{prop}')
+   svg = svg.replace('XXprop_vecXX', f'{prop_vec}')
+   with open(svg_tmp,'w') as f:
+      f.write(svg)
+   f.close()
+   print(' ',svg_tmp)
+   os.system(f'inkscape -b "#ffffff" -e {f_tmp} {svg_tmp}')
+   print(' ',f_tmp)
+   txt = 'eureka'
+   print('*-*-*-*')
+   send_media(bot,chatID,job_queue, f_tmp, caption=txt,
+                                         t_del=5*60, t_renew=6*60*60,
+                                         dis_notif=False)
 
-def locate(date,prop):
+def get_sc(date):
    UTCshift = dt.datetime.now()-dt.datetime.utcnow()
    utcdate = date - UTCshift
    now = dt.datetime.utcnow()
+   if   utcdate.date() == now.date(): return 'SC2'
+   elif utcdate.date() == now.date()+day: return 'SC2+1'
+   elif utcdate.date() == now.date()+2*day: return 'SC4+2'
+   elif utcdate.date() == now.date()+3*day: return 'SC4+3'
+   else: return None
+
+def locate(date,prop):
+   # UTCshift = dt.datetime.now()-dt.datetime.utcnow()
+   # utcdate = date - UTCshift
+   # now = dt.datetime.utcnow()
    fname  = HOME+'/Documents/RASP/PLOTS/w2/'
    day = dt.timedelta(days=1)
+   print('**********************')
+   build_image(date,prop)
+   print('**********************')
    if isinstance(utcdate, dt.datetime):
-      if   utcdate.date() == now.date(): fol = 'SC2'
-      elif utcdate.date() == now.date()+day: fol = 'SC2+1'
-      elif utcdate.date() == now.date()+2*day: fol = 'SC4+2'
-      elif utcdate.date() == now.date()+3*day: fol = 'SC4+3'
-      else: return None,None
+      # if   utcdate.date() == now.date(): fol = 'SC2'
+      # elif utcdate.date() == now.date()+day: fol = 'SC2+1'
+      # elif utcdate.date() == now.date()+2*day: fol = 'SC4+2'
+      # elif utcdate.date() == now.date()+3*day: fol = 'SC4+3'
+      # else: return None,None
+      fol = get_sc(date)
+      if fol == None: return None,None
       fname += fol + utcdate.strftime('/%H00')
-      fname += '_%s.jpg'%(prop)
+      fname += '_%s.png'%(prop)
       return fol,fname
    else:
       if   utcdate == now.date(): fol = 'SC2'
@@ -190,9 +243,9 @@ def general(update,context,prop): #(bot,update,job_queue,args,prop):
    else:
       txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
    RP = common.load(fname='config.ini')
-   send_media(bot,chatID,job_queue, f, caption=txt,
-                                       t_del= RP.t_del, t_renew=RP.t_renew,
-                                       dis_notif=False)
+   # send_media(bot,chatID,job_queue, f, caption=txt,
+   #                                     t_del= RP.t_del, t_renew=RP.t_renew,
+   #                                     dis_notif=False)
 
 
 def techo(update, context):     general(update,context,'hbl')
