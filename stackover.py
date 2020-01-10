@@ -1,23 +1,89 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import common
+RP = common.load(fname='config.ini')
+
+import sys
 import os
 here = os.path.dirname(os.path.realpath(__file__))
 import datetime as dt
 
 from telegram import ChatAction, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton as IlKB
+from telegram import InlineKeyboardMarkup
 from urllib.request import urlretrieve
 import credentials as CR
 from random import choice
+from threading import Thread
 import tool
 import aemet
+import admin
+import channel
 
+import logging
+logging.basicConfig(level=RP.log_lv,
+                    format='%(asctime)s %(name)s:%(levelname)s - %(message)s',
+                    datefmt='%Y/%m/%d-%H:%M:%S',
+                    filename=RP.log, filemode='w')
+LG = logging.getLogger('main')
+
+
+## Bot-Admin ###################################################################
+# Start
+def start(update, context):
+   """ Welcome message and user registration """
+   ch = update.message.chat
+   chatID = ch.id
+   uname = ch.username
+   fname = ch.first_name
+   lname = ch.last_name
+   if ch.id in CR.ADMINS_id: admin_level = 0
+   else: admin_level = 3
+   txt = "I'm a bot, please talk to me!"
+   context.bot.send_message(chat_id=update.message.chat_id, text=txt)
+   conn,c = admin.connect(RP.DBname)
+   admin.insert_user(conn,chatID,uname,fname,lname,admin_level,0)
+
+# Stop
+def shutdown():
+   U.stop()
+   U.is_idle = False
+
+@CR.restricted
+def stop(update, context):
+   """ Completely halt the Bot """
+   chatID = update['message']['chat']['id']
+   txt = 'I\'ll be shutting down\nI hope to see you soon!'
+   context.bot.send_message(chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
+   Thread(target=shutdown).start()
+
+# Reload
+def stop_and_restart():
+   """
+   Gracefully stop the Updater and replace the current process with a new one
+   """
+   U.stop()
+   os.execl(sys.executable, sys.executable, *sys.argv)
+
+@CR.restricted
+def restart(update,context):
+   """ Reload the Bot to update code, for instance """
+   txt = 'Bot is restarting...'
+   chatID = update['message']['chat']['id']
+   context.bot.send_message(chat_id=chatID, text=txt, 
+                            parse_mode=ParseMode.MARKDOWN)
+   Thread(target=stop_and_restart).start()
+
+## Soundings ###################################################################
 def sounding_selector(update,context):
    update.message.reply_text(places_message(),
                              reply_markup=places_keyboard())
    context.user_data['operation'] = 'sounding'
+   context.user_data['scalar'] = None
+   context.user_data['vector'] = None
+   context.user_data['cover']  = None
 
 def map_menu(update,context):
    query = update.callback_query
@@ -26,42 +92,19 @@ def map_menu(update,context):
                                  text = places_message(),
                                  reply_markup = places_keyboard())
    context.user_data['operation'] = 'sounding'
+   context.user_data['scalar'] = None
+   context.user_data['vector'] = None
+   context.user_data['cover']  = None
 
-def send_sounding(place,date,bot,chatID,job_queue):
-   places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
-             'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
-             'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
-             'pegalajar': 12, 'otivar': 13}
-   print('**************')
-   print(place)
-   print(date)
-   print('**************')
-   fol,_ = tool.locate(date,'')
-   print('==>',fol)
-   index = places[place]
-   H = date.strftime('%H%M')
-   url_picture = 'http://raspuri.mooo.com/RASP/'
-   url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
-   print(url_picture)
-   f_tmp = '/tmp/' + tool.rand_name() + '.png'
-   urlretrieve(url_picture, f_tmp)
-   T = aemet.get_temp(place,date)
-   txt = "Sounding for _%s_ at %s"%(place.capitalize(), date.strftime('%d/%m/%Y-%H:%M'))
-   if T != None:
-      txt += '\nExpected temperature: *%s°C*'%(T)
-   print(txt)
-   ##tool.send_media(update,context, f_tmp, msg=txt, t=180,delete=True)
-   tool.send_media(bot,chatID,job_queue, f_tmp, caption=txt,
-                                         t_del=5*60, t_renew=6*60*60,
-                                         dis_notif=False)
-   os.system(f'rm {f_tmp}')
-   return
 
-############################### Bot ############################################
+## Menu Options ################################################################
 def map_selector(update,context):
    update.message.reply_text(vector_message(),
                              reply_markup=vector_keyboard())
    context.user_data['operation'] = 'map'
+   context.user_data['scalar'] = None
+   context.user_data['vector'] = None
+   context.user_data['cover']  = None
 
 def map_menu(update,context):
    query = update.callback_query
@@ -70,6 +113,9 @@ def map_menu(update,context):
                                  text=vector_message(),
                                  reply_markup=vector_keyboard())
    context.user_data['operation'] = 'map'
+   context.user_data['scalar'] = None
+   context.user_data['vector'] = None
+   context.user_data['cover']  = None
 
 def keeper(update,context):
    query = update.callback_query
@@ -83,10 +129,6 @@ def keeper(update,context):
       keyboard = scalar_keyboard()
    elif data.startswith('scal_'):
       context.user_data['scalar'] = query['data'].replace('scal_','')
-      txt = cover_message()
-      keyboard = cover_keyboard()
-   elif data.startswith('over_'):
-      context.user_data['over'] = query['data'].replace('over_','')
       txt = day_message()
       keyboard = day_keyboard()
    elif data.startswith('place_'):
@@ -124,41 +166,120 @@ def keeper(update,context):
       date = date.replace(minute=0,second=0,microsecond=0)
       if context.user_data['operation'] == 'sounding':
          place = context.user_data['place']
-         send_sounding(place,date,context.bot,chatID,job_queue)
+         tool.send_sounding(place,date,context.bot,chatID,job_queue)
       elif context.user_data['operation'] == 'map':
-         print('HEREEEE')
-         tool.build_image(date,context.user_data['scalar'],context.user_data['vector'], context.bot,chatID,job_queue)
+         context.user_data['cover'] = None  #XXX future implementation
+         tool.build_image(date, context.user_data['scalar'],
+                                context.user_data['vector'],
+                                context.user_data['cover'],
+                                context.bot,chatID,job_queue)
       # context.user_data = {}   # reset after sending??
+
+
+## SFCwind
+def sfcwind_selector(update,context):
+   update.message.reply_text(day_message(),
+                             reply_markup=day_keyboard())
+   context.user_data['operation'] = 'map'
+   context.user_data['scalar'] = 'sfcwind'
+   context.user_data['vector'] = 'sfcwind'
+   context.user_data['cover']  = None
+
+def sfcwind_menu(update,context):
+   query = update.callback_query
+   context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                 message_id=query.message.message_id,
+                                 text=day_message(),
+                                 reply_markup=day_keyboard())
+   context.user_data['operation'] = 'map'
+   context.user_data['scalar'] = 'sfcwind'
+   context.user_data['vector'] = 'sfcwind'
+   context.user_data['cover']  = None
+
+## BLwind
+def blwind_selector(update,context):
+   update.message.reply_text(day_message(),
+                             reply_markup=day_keyboard())
+   context.user_data['operation'] = 'map'
+   context.user_data['scalar'] = 'blwind'
+   context.user_data['vector'] = 'blwind'
+   context.user_data['cover']  = None
+
+def blwind_menu(update,context):
+   query = update.callback_query
+   context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                 message_id=query.message.message_id,
+                                 text=day_message(),
+                                 reply_markup=day_keyboard())
+   context.user_data['operation'] = 'map'
+   context.user_data['scalar'] = 'blwind'
+   context.user_data['vector'] = 'blwind'
+   context.user_data['cover']  = None
+
+## BLTopwind
+def bltopwind_selector(update,context):
+   update.message.reply_text(day_message(),
+                             reply_markup=day_keyboard())
+   context.user_data['operation'] = 'map'
+   context.user_data['scalar'] = 'bltopwind'
+   context.user_data['vector'] = 'bltopwind'
+   context.user_data['cover']  = None
+
+def bltopwind_menu(update,context):
+   query = update.callback_query
+   context.bot.edit_message_text(chat_id=query.message.chat_id,
+                                 message_id=query.message.message_id,
+                                 text=day_message(),
+                                 reply_markup=day_keyboard())
+   context.user_data['operation'] = 'map'
+   context.user_data['scalar'] = 'bltopwind'
+   context.user_data['vector'] = 'bltopwind'
+   context.user_data['cover']  = None
+
 
 
 ############################ Keyboards #########################################
 def vector_keyboard():
-   keyboard = [[InlineKeyboardButton('Superficie', callback_data='vec_sfcwind'),
-               InlineKeyboardButton('Media Altura', callback_data='vec_blwind'),
-               InlineKeyboardButton('Altura', callback_data='vec_bltopwind')],
-               [InlineKeyboardButton('Ninguno', callback_data='vec_none')]]
+   keyboard = [[IlKB('Superficie', callback_data='vec_sfcwind'),
+               IlKB('Promedio', callback_data='vec_blwind'),
+               IlKB('Altura', callback_data='vec_bltopwind')],
+               [IlKB('Ninguno', callback_data='vec_none')]]
    return InlineKeyboardMarkup(keyboard)
 
 def scalar_keyboard():
-   keyboard = [[InlineKeyboardButton('Viento superficie', callback_data='scal_sfcwind'),
-                InlineKeyboardButton('Media altura', callback_data='scal_blwind'),
-                InlineKeyboardButton('Altura', callback_data='scal_bltopwind')],
-               [InlineKeyboardButton('Altura capa convectiva', callback_data='scal_hbl'),
-                InlineKeyboardButton('Altura térmicas', callback_data='scal_hglider'),
-                InlineKeyboardButton('Potencia térmicas', callback_data='scal_wstar')],
-               [InlineKeyboardButton('CAPE', callback_data='scal_cape')],
-               [InlineKeyboardButton('B/S ratio', callback_data='scal_bsratio'),
-                InlineKeyboardButton('bl max u/d motion', callback_data='scal_wblmaxmin')],
-               [InlineKeyboardButton('Volver a empezar', callback_data='main'),
-                InlineKeyboardButton('Cancelar', callback_data='stop')]]
+   keyboard = [[IlKB('Viento superficie', callback_data='scal_sfcwind'),
+                IlKB('Promedio', callback_data='scal_blwind'),
+                IlKB('Altura', callback_data='scal_bltopwind')],
+               [IlKB('Techo (azul)', callback_data='scal_hglider'),
+                IlKB('Base nube', callback_data='scal_zsfclcl')],
+               [IlKB('CAPE', callback_data='scal_cape'),
+                IlKB('Térmica', callback_data='scal_wstar')],
+               [IlKB('Convergencias', callback_data='scal_wblmaxmin'),
+                IlKB('Cielo cubierto', callback_data='scal_zblcl')],
+                # IlKB('B/S ratio', callback_data='scal_bsratio'),
+               [IlKB('Volver a empezar', callback_data='main'),
+                IlKB('Cancelar', callback_data='stop')]]
    return InlineKeyboardMarkup(keyboard)
+# def scalar_keyboard():
+#    keyboard = [[IlKB('Viento superficie', callback_data='scal_sfcwind'),
+#                 IlKB('Promedio', callback_data='scal_blwind'),
+#                 IlKB('Altura', callback_data='scal_bltopwind')],
+#                [IlKB('Altura capa convectiva', callback_data='scal_hbl'),
+#                 IlKB('Altura térmicas', callback_data='scal_hglider'),
+#                 IlKB('Potencia térmicas', callback_data='scal_wstar')],
+#                [IlKB('CAPE', callback_data='scal_cape')],
+#                [IlKB('B/S ratio', callback_data='scal_bsratio'),
+#                 IlKB('bl max u/d motion', callback_data='scal_wblmaxmin')],
+#                [IlKB('Volver a empezar', callback_data='main'),
+#                 IlKB('Cancelar', callback_data='stop')]]
+#    return InlineKeyboardMarkup(keyboard)
 
 def cover_keyboard():
-   keyboard = [[InlineKeyboardButton('Nubes', callback_data='over_blcloudpct'),
-                InlineKeyboardButton('Isobaras', callback_data='over_press')],
-               [InlineKeyboardButton('None', callback_data='over_none')],
-               [InlineKeyboardButton('Volver a empezar', callback_data='main'),
-                InlineKeyboardButton('Cancelar', callback_data='stop')]]
+   keyboard = [[IlKB('Nubes', callback_data='over_blcloudpct'),
+                IlKB('Isobaras', callback_data='over_press')],
+               [IlKB('None', callback_data='over_none')],
+               [IlKB('Volver a empezar', callback_data='main'),
+                IlKB('Cancelar', callback_data='stop')]]
    return InlineKeyboardMarkup(keyboard)
 
 def places_keyboard():
@@ -170,37 +291,38 @@ def places_keyboard():
       try:
          P = places_keys[i]
          P1 = places_keys[i+1]
-         keyboard.append([InlineKeyboardButton(P.capitalize(), callback_data='place_'+P),
-                          InlineKeyboardButton(P1.capitalize(), callback_data='place_'+P1)])
+         keyboard.append([IlKB(P.capitalize(), callback_data='place_'+P),
+                          IlKB(P1.capitalize(), callback_data='place_'+P1)])
       except IndexError:
          P = places_keys[i]
          keyboard.append([IlKB(P.capitalize(), callback_data=P), ])
    return InlineKeyboardMarkup(keyboard)
 
 def day_keyboard():
-   keyboard = [[InlineKeyboardButton('Hoy', callback_data='day_0'),
-                InlineKeyboardButton('Mañana', callback_data='day_1')],
-               [InlineKeyboardButton('Pasado', callback_data='day_2'),
-                InlineKeyboardButton('Al otro', callback_data='day_3')],
-               [InlineKeyboardButton('Volver a empezar', callback_data='main'),
-                InlineKeyboardButton('Cancelar', callback_data='stop')]]
+   keyboard = [[IlKB('Hoy', callback_data='day_0'),
+                IlKB('Mañana', callback_data='day_1')],
+               [IlKB('Pasado', callback_data='day_2'),
+                IlKB('Al otro', callback_data='day_3')],
+               [IlKB('Volver a empezar', callback_data='main'),
+                IlKB('Cancelar', callback_data='stop')]]
    return InlineKeyboardMarkup(keyboard)
 
 def hour_keyboard():
-   keyboard = [[InlineKeyboardButton("9:00",  callback_data='hour_9:00') ,
-                InlineKeyboardButton("10:00", callback_data='hour_10:00'),
-                InlineKeyboardButton("11:00", callback_data='hour_11:00'),
-                InlineKeyboardButton("12:00", callback_data='hour_12:00')],
-               [InlineKeyboardButton("13:00", callback_data='hour_13:00') ,
-                InlineKeyboardButton("14:00", callback_data='hour_14:00'),
-                InlineKeyboardButton("15:00", callback_data='hour_15:00'),
-                InlineKeyboardButton("16:00", callback_data='hour_16:00')],
-               [InlineKeyboardButton("17:00", callback_data='hour_17:00') ,
-                InlineKeyboardButton("18:00", callback_data='hour_18:00'),
-                InlineKeyboardButton("19:00", callback_data='hour_19:00'),
-                InlineKeyboardButton("20:00", callback_data='hour_20:00')],
-               [InlineKeyboardButton('Volver a empezar', callback_data='main'),
-                InlineKeyboardButton('Cancelar', callback_data='stop')]]
+   #XXX local time
+   keyboard = [[IlKB("9:00",  callback_data='hour_9:00') ,
+                IlKB("10:00", callback_data='hour_10:00'),
+                IlKB("11:00", callback_data='hour_11:00'),
+                IlKB("12:00", callback_data='hour_12:00')],
+               [IlKB("13:00", callback_data='hour_13:00') ,
+                IlKB("14:00", callback_data='hour_14:00'),
+                IlKB("15:00", callback_data='hour_15:00'),
+                IlKB("16:00", callback_data='hour_16:00')],
+               [IlKB("17:00", callback_data='hour_17:00') ,
+                IlKB("18:00", callback_data='hour_18:00'),
+                IlKB("19:00", callback_data='hour_19:00'),
+                IlKB("20:00", callback_data='hour_20:00')],
+               [IlKB('Volver a empezar', callback_data='main'),
+                IlKB('Cancelar', callback_data='stop')]]
    return InlineKeyboardMarkup(keyboard)
 
 
@@ -237,9 +359,13 @@ def hola(update, context):
                                 parse_mode=ParseMode.MARKDOWN)
 
 ############################# Handlers #########################################
-token, Bcast_chatID = CR.get_credentials('Tester.token')
+# token, Bcast_chatID = CR.get_credentials('Tester.token')
+MB = CR.get_credentials('Tester.token')
+token = MB.token
+Bcast_chatID = MB.chatIDs[-1]
 U = Updater(token, use_context=True)
 D = U.dispatcher
+J = U.job_queue
 
 D.add_handler(CommandHandler('map', map_selector))
 D.add_handler(CallbackQueryHandler(map_menu, pattern='main'))
@@ -251,9 +377,24 @@ D.add_handler(CallbackQueryHandler(keeper, pattern=r'hour_([\w*])'))
 D.add_handler(CallbackQueryHandler(keeper, pattern=r'place_([\w*])'))
 D.add_handler(CallbackQueryHandler(keeper, pattern='stop'))
 
-D.add_handler(CommandHandler('sounding', sounding_selector))
+D.add_handler(CommandHandler('sondeo', sounding_selector))
 
+D.add_handler(CommandHandler('sfcwind', sfcwind_selector))
+D.add_handler(CommandHandler('bltopwind', bltopwind_selector))
+D.add_handler(CommandHandler('blwind', blwind_selector))
+
+# Admin
+D.add_handler(CommandHandler('start', start))
+D.add_handler(CommandHandler('stop', stop))
+D.add_handler(CommandHandler('reload', restart))
 D.add_handler(CommandHandler('hola', hola))
+
+## Setup DB for files ##########################################################
+admin.create_db('RaspBot.db')
+
+# Broadcast
+J.run_daily(channel.broadcast, dt.time(8,30), context=(Bcast_chatID,))
+# J.run_daily(channel.close_poll, dt.time(23,50), context=(Bcast_chatID,)) 
 
 U.start_polling()
 ################################################################################

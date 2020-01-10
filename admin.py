@@ -15,18 +15,21 @@ class EntryNotFound(Exception):
 def create_db(file_db='my_database.db'):
    """
    Create a database with two tables to store users and files
-   Table users:
-     chatid  username  first_name  last_name  is_admin
-     [int]   [str]     [str]       [str]      [int]
-   Table files:
-     year   month  day    hour   minute  fname  file_id
-     [int]  [int]  [int]  [int]  [int]   [str]  [str]
+      Table users:
+        chatid  username  first_name  last_name  admin_level  usage
+        [int]   [str]     [str]       [str]      [int]        [int]
+      Table files:
+        date_requested  date_prediction  vector  scalar  cover   file_id
+        [text]          [text]           [text]  [text]  [text]  [text]
+   admin_level is increasingly worse. admin_level=0 means god-like permissions
+   admin_level=infinite means no access to the bot services.
+   The actual levels will be set as the bot evolves
    """
    conn,c = connect(file_db=file_db)
 
    ## Users table
    field_types = ['chatid integer','username text','first_name text',
-                  'last_name text','is_admin integer']
+                  'last_name text','admin_level integer','usage integer']
    field_types = ','.join(field_types)
    table = 'users'
    with conn:
@@ -36,8 +39,10 @@ def create_db(file_db='my_database.db'):
          LG.warning(f'table {table} already exists')
 
    ## Files table
-   field_types=['year integer', 'month integer', 'day integer', 'hour integer',
-                'minute integer', 'fname text', 'file_id text']
+   field_types = ['date_requested text', 'date_prediction text', 'vector text',
+                  'scalar text', 'cover text','file_id text']
+   # field_types=['year integer', 'month integer', 'day integer', 'hour integer',
+   #              'minute integer', 'fname text', 'file_id text']
    field_types = ','.join(field_types)
    table = 'files'
    with conn:
@@ -96,40 +101,70 @@ def remove_entry(conn,table,field,value):
 
 
 ## FILES #######################################################################
-def insert_file(conn,year, month, day, hour, minute, fname, file_id):
+def insert_file(conn, date_req, date_pred, vector, scalar, cover, file_id):
+   vector = str(vector)
+   scalar = str(scalar)
+   cover = str(cover)
    c = conn.cursor()
    with conn:
       try:
-         ff = get_file(conn,'fname',fname)
+         ff = get_file(conn, date_pred, vector, scalar, cover)
          LG.warning('Entry already exists')
       except EntryNotFound:
-         c.execute(f"INSERT INTO files VALUES (:year, :month, :day, :hour,"+
-                   f":minute, :fname, :file_id)",
-                   {'year':year, 'month':month, 'day':day, 'hour':hour,
-                    'minute':minute, 'fname':fname, 'file_id':file_id})
+         LG.debug('Entry Not Found')
+         c.execute(f"INSERT INTO files VALUES (:date_req, :date_pred, "+
+                   f":vector, :scalar, :cover, :file_id)",
+                   {'date_req':date_req, 'date_pred':date_pred, 'vector':vector,
+                    'scalar':scalar, 'cover':cover, 'file_id':file_id})
    c.close()
 
 
-def get_file(conn,field,value):
-   ret = get_entry(conn,'files',field,value)
+def get_file(conn, date_pred, vector, scalar, cover,table='files'):
+   c = conn.cursor()
+   with conn:
+      c.execute(f"SELECT * FROM {table} WHERE "+
+                f"date_prediction=:pred AND "+
+                f"vector=:vector AND "+
+                f"scalar=:scalar AND "+
+                f"cover=:cover",
+                {'pred': date_pred,
+                 'vector':vector,
+                 'scalar':scalar,
+                 'cover':cover})
+   ret = c.fetchall()
+   c.close()
    if len(ret) > 0: return ret
    else: raise EntryNotFound
 
-def remove_file(conn,field,value):
-   ret = remove_entry(conn,'files',field,value)
+def remove_file(conn,f_id,table='files'):
+   # ret = remove_entry(conn,'files','file_id',f_id)
+   c = conn.cursor()
+   with conn:
+      c.execute(f"DELETE from {table} WHERE file_id=:value",{'value': f_id})
+   c.close()
 
 
 ## USERS #######################################################################
-def insert_user(conn,chatid,uname,fname,lname,isadmin):
+def user_usage(conn,chatid,usage):
+   c = conn.cursor()
+   with conn:
+      current_usage = get_user(conn,'chatid',chatid)[0][-1]
+      usage += current_usage
+      c.execute(f"UPDATE users SET usage=:usa WHERE chatid=:chatid",
+                 {'usa':usage, 'chatid':chatid})
+
+
+def insert_user(conn,chatid,uname,fname,lname,admin_level,usage=0):
    c = conn.cursor()
    with conn:
       try:
          ff = get_user(conn,'username',uname)
          LG.warning('User already exists')
       except EntryNotFound:
-         c.execute(f"INSERT INTO users VALUES (:pl0, :pl1, :pl2, :pl3, :pl4)",
+         c.execute("INSERT INTO users VALUES "+
+                   f"(:pl0, :pl1, :pl2, :pl3, :pl4, :pl5)",
                    {'pl0': chatid, 'pl1': uname, 'pl2': fname,
-                    'pl3': lname, 'pl4':isadmin})
+                    'pl3': lname, 'pl4':admin_level, 'pl5':usage})
    c.close()
 
 
@@ -145,12 +180,26 @@ def remove_user(conn,field,value):
 
 if __name__ == '__main__':
    import sys
+   import datetime as dt
    try: sqlite_file = sys.argv[1]
    except IndexError:
       print('No file specified')
       exit()
 
-   #create_db(file_db=sqlite_file)
-   conn,c = connect(sqlite_file)
+   # create_db(file_db=sqlite_file)
+   # conn,c = connect(sqlite_file)
+   # req = dt.datetime.now()
+   # val = dt.datetime.now()+dt.timedelta(days=3)
+   # vec=None
+   # scal='sfcwind'
+   # cov=None
+   # file_id = '2345ty6u7j6543re'
+   # fmt = '%d/%m/%Y-%H:00'
+   # insert_file(conn,req.strftime(fmt),val.strftime(fmt),vec,scal,cov,file_id)
+   # show_all(conn)
+   # print('\n\nRepeating\n')
+   # insert_file(conn,req.strftime(fmt),val.strftime(fmt),vec,scal,cov,file_id)
+   # show_all(conn)
 
+   conn,c = connect(sqlite_file)
    show_all(conn)

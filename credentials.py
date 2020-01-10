@@ -13,6 +13,20 @@ ADMINS = open(here+'/whitelist.private','r').read().strip().splitlines()
 ADMINS_id = [int(x.split(',')[0]) for x in ADMINS]
 ADMINS_un = [x.split(',')[1] for x in ADMINS]
 
+class MyBot(object):
+   def __init__(self, token, chatIDs):
+      self.token = token
+      self.chatIDs = chatIDs
+      self.whitelist = ADMINS_id
+      self.whitelist_id = self.whitelist
+      self.whitelist_un = ADMINS_un
+   def __str__(self):
+      msg = f'Token: {self.token}\n'
+      msg += 'Chat IDs:\n'
+      for chid in self.chatIDs:
+         msg += f'  --> {chid}\n'
+      return msg
+
 def encode_credentials(key, chatid):  #, fname='bot.token'):
    """ Encode the key and main chatid in a file """
    key    = encode(bytes(key,'utf-8')).decode('utf-8')
@@ -23,8 +37,10 @@ def get_credentials(api_file=here+'/telegram_bot.private'):
    """ decode the key and main chatid from a file """
    api_key = open(api_file,'r').read().strip().splitlines()
    bot_token = decode(api_key[0]).decode('utf-8')
-   bot_chatID = decode(api_key[1]).decode('utf-8')
-   return bot_token, bot_chatID
+   # bot_chatID = decode(api_key[1]).decode('utf-8')
+   bot_chatIDs = [ decode(key).decode('utf-8') for key in api_key[1:] ]
+   # return bot_token, bot_chatIDs
+   return MyBot(bot_token, bot_chatIDs)
 
 def rand_string(pwdSize=8):
    """ Generates a random string of letters and digits with pwdSize length """

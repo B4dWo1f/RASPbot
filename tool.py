@@ -1,6 +1,10 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import numpy as np
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import common
 from telegram import ChatAction, ParseMode
 import telegram
@@ -18,6 +22,26 @@ HOME = os.getenv('HOME')
 LG = logging.getLogger(__name__)
 #f_id_files = here+'/pics_ids.txt'
 f_id_files = here+'/files.db'
+fmt = '%d/%m/%Y-%H:%M'
+
+fname = 'rasp_var.dict'
+var_dict = open(fname,'r').read().strip()
+keys,values = [],[]
+for l in var_dict.splitlines():
+   k,v = l.split(',')
+   keys.append(k)
+   values.append(v)
+prop_names = dict(zip(keys,values))
+
+class PlotDescriptor(object):
+   def __init__(self,date_valid,vector,scalar,cover,fname=''):
+      """ date_valid has to be a datetime object """
+      fmt = '%d/%m/%Y-%H:00'
+      self.date_valid = date_valid.strftime(fmt)
+      self.vector = str(vector)
+      self.scalar = str(scalar)
+      self.cover  = str(cover)
+      self.fname  = str(fname)
 
 def call_delete(context: telegram.ext.CallbackContext):
    """
@@ -27,16 +51,16 @@ def call_delete(context: telegram.ext.CallbackContext):
    m = context.bot.delete_message(chatID, msgID)
 
 
-def send_media(bot,chatID,job_queue, media_file, caption='',
-                                                 t_del=None, t_renew=600,
-                                                 dis_notif=False):
+def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
+                                                dis_notif=False, recycle=True,
+                                                db_file='RaspBot.db'):
    """
    media_file: file to be sent
    t_renew: if file was registered in the database longer than t_renew seconds,
             send the file again and replace the entry
+   recycle: Boolean. check DB for previous send
    """
-   print('------- Sending')
-   print(media_file,caption)
+   media_file = P.fname
    if media_file[-4:] in ['.jpg', '.png']:
       send_func = bot.send_photo
       media = open(media_file,'rb')
@@ -46,39 +70,42 @@ def send_media(bot,chatID,job_queue, media_file, caption='',
       media = open(media_file,'rb')
       Action = ChatAction.UPLOAD_VIDEO
 
-   conn,c = admin.connect('RaspBot.db')
-   print('hey')
+   conn,c = admin.connect(db_file)
    now = dt.datetime.now()
    skip = False
-   try:
-      print('trying')
-      ff = admin.get_file(conn, 'fname', media_file)
-      print(ff)
-      date = dt.datetime(*list(map(int,ff[0][:5])))
-      print(date)
-      if (now-date).total_seconds() < t_renew:
-         print('no renew')
-         media = ff[0][-1]
-         if send_func == bot.send_video:
-            send_func = bot.send_animation
-         skip = True
-      else:
-         print('renew')
-         LG.info(f'{media_file} is too old, deleting entry ')
-         admin.remove_file(conn,'fname', media_file)
-   except EntryNotFound: pass
-   print('you')
+   if recycle:
+      LG.debug(f'Checking DB {db_file}')
+      try:
+         # admin.show_all(conn)
+         ff = admin.get_file(conn, P.date_valid, P.vector, P.scalar, P.cover)
+         LG.debug('Entry found')
+         date = dt.datetime.strptime(ff[0][0],fmt)
+         f_id = ff[0][-1]
+         if (now-date).total_seconds() < t_renew:
+            LG.debug(f'Re-using {media_file}, previously sent')
+            media = f_id
+            if send_func == bot.send_video:
+               send_func = bot.send_animation
+            skip = True
+         else:
+            LG.debug(f'{media_file} is too old. Delete entry and send again')
+            admin.remove_file(conn,f_id)
+      except EntryNotFound: pass
+   else: pass
    bot.send_chat_action(chat_id=chatID, action=Action)
-   print('==>',media)
+   LG.debug(f'Sending {media}')
    M = send_func(chatID, media, caption=caption,
                                 timeout=300, disable_notification=dis_notif,
                                 parse_mode=ParseMode.MARKDOWN)
-   print('sent')
+   admin.user_usage(conn,chatID,1)
+   LG.info(f'File sent to chat {chatID}')
    try: file_id = M['photo'][-1]['file_id']
    except IndexError: file_id = M['animation']['file_id']
    if not skip:
-      admin.insert_file(conn, now.year,now.month,now.day,now.hour,now.minute,
-                        media_file, file_id)
+      admin.insert_file(conn, now.strftime(fmt), P.date_valid, P.vector,
+                              P.scalar, P.cover,file_id)
+      # admin.insert_file(conn, P.now.year,now.month,now.day,now.hour,now.minute,
+      #                   media_file, file_id)
    if t_del != None:
       msgID = M.message_id
       job_queue.run_once(call_delete,t_del, context=(chatID, msgID))
@@ -109,7 +136,6 @@ def parser_date(line):
              'viernes':4, 'sabado':5, 'sábado':5, 'domingo':6}
    shifts = {'hoy':0, 'mañana':1, 'pasado':2, 'pasado mañana':2, 'al otro':3}
 
-   fmt = '%d/%m/%Y-%H:%M'
    notime = False
    try: return dt.datetime.strptime(line, fmt)
    except ValueError:
@@ -142,38 +168,161 @@ def parser_date(line):
       else: return date.replace(hour=h, minute=m, second=0, microsecond=0)
    except: raise
 
-def build_image(date,prop,prop_vec,bot,chatID,job_queue):
+def build_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    """
-   sed -e "s/XXhourXX/$hour/" w2_"$SC"_vec_scal_template.svg | sed -e "s/XXpropXX/$prop/" | sed -e "s/XXprop_vecXX/$prop_vec/" > foo.svg
+   Date comes in local time
    """
-   f_tmp = '/tmp/test.png'
-   svg_tmp = '/tmp/foo.svg'
-   print('Building')
-   print(date)
-   sc = get_sc(date).lower()
-   if prop_vec != None: fname = f'w2_{sc}_vec_scal_template.svg'
-   else: fname = f'w2_{sc}_scal_template.svg'
-   print(' ',fname)
-   svg = open(fname, 'r').read().strip()
-   svg = svg.replace('XXhourXX', f'{date.hour*100:04d}')
-   svg = svg.replace('XXpropXX', f'{prop}')
-   svg = svg.replace('XXprop_vecXX', f'{prop_vec}')
-   with open(svg_tmp,'w') as f:
-      f.write(svg)
-   f.close()
-   print(' ',svg_tmp)
-   os.system(f'inkscape -b "#ffffff" -e {f_tmp} {svg_tmp}')
-   print(' ',f_tmp)
-   txt = 'eureka'
-   print('*-*-*-*')
-   send_media(bot,chatID,job_queue, f_tmp, caption=txt,
+   f_tmp = '/tmp/image.png'
+   dateUTC = date - get_utc_shift()
+   P =  PlotDescriptor(dateUTC,vector,scalar,cover,fname=f_tmp)
+   props = {'sfcwind':'Viento Superficie', 'blwind':'Viento Promedio',
+            'bltopwind':'Viento Altura', 'hglider':'Techo (azul)',
+            'wstar':'Térmica', 'zsfclcl':'Base nube', 'zblcl':'Cielo cubierto',
+            'cape':'CAPE', 'wblmaxmin':'Convergencias' }
+   dom='w2'
+   sc = get_sc(dateUTC)
+   hora = dateUTC.strftime('%H00')
+   title = f"{date.strftime('%d/%m/%Y-%H:%M')} {props[scalar]}"
+   fol = f'{HOME}/Documents/RASP/PLOTS/{dom}/{sc}'
+   terrain = f'{fol}/terrain.png'
+   rivers = f'{fol}/rivers.png'
+   ccaa = f'{fol}/ccaa.png'
+   bar = f'{HOME}/Documents/RASP/PLOTS/{scalar}_light.png'
+   if vector != 'none': vector = f'{fol}/{hora}_{vector}_vec.png'
+   else: vector = None
+   scalar = f'{fol}/{hora}_{scalar}.png'
+   LG.debug(vector)
+   LG.debug(scalar)
+   lats = f'{HOME}/CODES/RASPlots/grids/{dom}/{sc}/lats.npy'
+   lons = f'{HOME}/CODES/RASPlots/grids/{dom}/{sc}/lons.npy'
+   lats = np.load(lats)
+   lons = np.load(lons)
+   d_x = np.max(lons)-np.min(lons)
+   d_y = np.max(lats)-np.min(lats)
+   dy,dx = lons.shape
+   # aspects = {'SC2':2.25, 'SC2+1':2.25, 'SC4+2':1.3, 'SC4+3':1.3}
+   aspects = {'w2':{'SC2':2.25, 'SC2+1':2.25, 'SC4+2':1.3, 'SC4+3':1.3},
+              'd2':{'SC2':1.9, 'SC2+1':1.9, 'SC4+2':1.9, 'SC4+3':1.9}}
+   aspect = aspects[dom][sc]*d_y/d_x
+   aspect = 1.
+   # Read Images
+   terrain = mpimg.imread(terrain)
+   rivers = mpimg.imread(rivers)
+   ccaa = mpimg.imread(ccaa)
+   if vector != None: img_vector = mpimg.imread(vector)
+   img_scalar = mpimg.imread(scalar)
+   bar = mpimg.imread(bar)
+   # Output Images
+   fig = plt.figure()
+   gs = gridspec.GridSpec(2, 1, height_ratios=[7.2,1])
+   fig.subplots_adjust(wspace=0.,hspace=0.)
+   ax1 = plt.subplot(gs[0,0])
+   ax2 = plt.subplot(gs[1,0])
+   ax1.imshow(terrain,aspect=aspect,interpolation='lanczos',zorder=0)
+   ax1.imshow(rivers,aspect=aspect,interpolation='lanczos',zorder=0)
+   ax1.imshow(ccaa,aspect=aspect,interpolation='lanczos',zorder=20)
+   if vector != None:
+      ax1.imshow(img_vector, aspect=aspect, interpolation='lanczos',
+                             zorder=11, alpha=0.75)
+   ax1.imshow(img_scalar, aspect=aspect, interpolation='lanczos',
+                          zorder=10, alpha=0.5)
+   ax1.set_xticks([])
+   ax1.set_yticks([])
+   ax1.set_title(title)
+   ax1.axis('off')
+   ax2.imshow(bar)
+   ax2.set_xticks([])
+   ax2.set_yticks([])
+   ax2.axis('off')
+   fig.tight_layout()
+   fig.savefig(f_tmp)
+   
+   os.system(f'convert {f_tmp} -trim /tmp/output.png')
+   os.system(f'mv /tmp/output.png {f_tmp}')
+   txt = 'eurekka'
+   txt = f"{prop_names[P.scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
+   send_media(bot,chatID,job_queue, P, caption=txt,
+                                       t_del=5*60, t_renew=6*60*60,
+                                       dis_notif=False,
+                                       recycle=True)
+
+
+def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
+                                                   t_renew=6*60*60,
+                                                   dis_notif=False):
+   dateUTC = date - get_utc_shift()
+   places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
+             'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
+             'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
+             'pegalajar': 12, 'otivar': 13}
+   fol = get_sc(date)
+   index = places[place]
+   H = date.strftime('%H%M')
+   url_picture = 'http://raspuri.mooo.com/RASP/'
+   url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
+   LG.debug(url_picture)
+   f_tmp = '/tmp/' + rand_name() + '.png'
+   urlretrieve(url_picture, f_tmp)
+   T = aemet.get_temp(place,date)
+   fmt = '%d/%m/%Y-%H:%M'
+   txt = f"Sounding for _{place.capitalize()}_ at {date.strftime(fmt)}"
+   if T != None:
+      txt += f'\nExpected temperature: *{T}°C*'
+   ##tool.send_media(update,context, f_tmp, msg=txt, t=180,delete=True)
+   P =  PlotDescriptor(dateUTC,None,None,None,fname=f_tmp)
+   # bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
+   send_media(bot,chatID,job_queue, P, caption=txt,
                                          t_del=5*60, t_renew=6*60*60,
-                                         dis_notif=False)
+                                         dis_notif=False,recycle=False)
+   os.system(f'rm {f_tmp}')
+   return
+
+# def build_image(date,prop,prop_vec,bot,chatID,job_queue,dpi=65):
+#    """
+#    sed -e "s/XXhourXX/$hour/" w2_"$SC"_vec_scal_template.svg | sed -e "s/XXpropXX/$prop/" | sed -e "s/XXprop_vecXX/$prop_vec/" > foo.svg
+#    """
+#    props = {'sfcwind':'Viento Superficie', 'blwind':'Viento promedio',
+#             'bltopwind':'Viento Altura', 'hglider':'Techo (azul)'}
+#    f_tmp = '/tmp/test.png'
+#    svg_tmp = '/tmp/foo.svg'
+#    print('Building')
+#    print(date)
+#    print(date)
+#    print(prop)
+#    print(props[prop])
+#    title = f"{date.strftime('%a %d')} {props[prop]} {date.strftime('%H:%M')}"
+#    print('==>',title)
+#    sc = get_sc(date).lower()
+#    print('SC=',sc)
+#    if prop_vec != None: fname = f'w2_{sc}_vec_scal_template.svg'
+#    else: fname = f'w2_{sc}_scal_template.svg'
+#    print(' ',fname)
+#    svg = open(fname, 'r').read().strip()
+#    svg = svg.replace('XXhourXX', f'{date.hour*100:04d}')
+#    svg = svg.replace('XXpropXX', f'{prop}')
+#    svg = svg.replace('XXprop_vecXX', f'{prop_vec}')
+#    svg = svg.replace('XXtitleXX', f'{title}')
+#    with open(svg_tmp,'w') as f:
+#       f.write(svg)
+#    f.close()
+#    print(' ',svg_tmp)
+#    os.system(f'inkscape -z -b "#ffffff" -d {dpi} -e {f_tmp} {svg_tmp}')
+#    print(' ',f_tmp)
+#    txt = 'eureka'
+#    print('*-*-*-*')
+#    send_media(bot,chatID,job_queue, f_tmp, caption=txt,
+#                                          t_del=5*60, t_renew=6*60*60,
+#                                          dis_notif=False)
+
+def get_utc_shift():
+   UTCshift = dt.datetime.now()-dt.datetime.utcnow()
+   return dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
 
 def get_sc(date):
    UTCshift = dt.datetime.now()-dt.datetime.utcnow()
    utcdate = date - UTCshift
    now = dt.datetime.utcnow()
+   day = dt.timedelta(days=1)
    if   utcdate.date() == now.date(): return 'SC2'
    elif utcdate.date() == now.date()+day: return 'SC2+1'
    elif utcdate.date() == now.date()+2*day: return 'SC4+2'
@@ -185,16 +334,9 @@ def locate(date,prop):
    # utcdate = date - UTCshift
    # now = dt.datetime.utcnow()
    fname  = HOME+'/Documents/RASP/PLOTS/w2/'
-   day = dt.timedelta(days=1)
-   print('**********************')
+   # day = dt.timedelta(days=1)
    build_image(date,prop)
-   print('**********************')
    if isinstance(utcdate, dt.datetime):
-      # if   utcdate.date() == now.date(): fol = 'SC2'
-      # elif utcdate.date() == now.date()+day: fol = 'SC2+1'
-      # elif utcdate.date() == now.date()+2*day: fol = 'SC4+2'
-      # elif utcdate.date() == now.date()+3*day: fol = 'SC4+3'
-      # else: return None,None
       fol = get_sc(date)
       if fol == None: return None,None
       fname += fol + utcdate.strftime('/%H00')

@@ -1,0 +1,9 @@
+sfcwind,Viento superficie
+blwind,Promedio
+bltopwind,Altura
+hglider,Techo (azul)
+zsfclcl,Base nube
+cape,CAPE
+wstar,Térmica
+wblmaxmin,Convergencias
+zblcl,Cielo cubierto
