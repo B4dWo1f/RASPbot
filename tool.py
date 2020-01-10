@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import common
+RP = common.load(fname='config.ini')
 import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -172,29 +174,32 @@ def build_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    """
    Date comes in local time
    """
-   f_tmp = '/tmp/image.png'
    dateUTC = date - get_utc_shift()
+   dom='w2'
+   sc = get_sc(dateUTC)
+   root_fol = RP.fol_plots    #f'{HOME}/Documents/RASP/PLOTS'
+   fol = f'{root_fol}/{dom}/{sc}'
+   grids_fol = RP.fol_grids   #f'{HOME}/CODES/RASPlots/grids/{dom}/{sc}'
+   f_tmp = '/tmp/' + rand_name() + '.png'
+   f_tmp1 = '/tmp/' + rand_name() + '.png'
    P =  PlotDescriptor(dateUTC,vector,scalar,cover,fname=f_tmp)
    props = {'sfcwind':'Viento Superficie', 'blwind':'Viento Promedio',
             'bltopwind':'Viento Altura', 'hglider':'Techo (azul)',
             'wstar':'Térmica', 'zsfclcl':'Base nube', 'zblcl':'Cielo cubierto',
             'cape':'CAPE', 'wblmaxmin':'Convergencias' }
-   dom='w2'
-   sc = get_sc(dateUTC)
    hora = dateUTC.strftime('%H00')
    title = f"{date.strftime('%d/%m/%Y-%H:%M')} {props[scalar]}"
-   fol = f'{HOME}/Documents/RASP/PLOTS/{dom}/{sc}'
    terrain = f'{fol}/terrain.png'
    rivers = f'{fol}/rivers.png'
    ccaa = f'{fol}/ccaa.png'
-   bar = f'{HOME}/Documents/RASP/PLOTS/{scalar}_light.png'
+   bar = f'{root_fol}/{scalar}_light.png'
    if vector != 'none': vector = f'{fol}/{hora}_{vector}_vec.png'
    else: vector = None
    scalar = f'{fol}/{hora}_{scalar}.png'
    LG.debug(vector)
    LG.debug(scalar)
-   lats = f'{HOME}/CODES/RASPlots/grids/{dom}/{sc}/lats.npy'
-   lons = f'{HOME}/CODES/RASPlots/grids/{dom}/{sc}/lons.npy'
+   lats = f'{grids_fol}/{dom}/{sc}/lats.npy'
+   lons = f'{grids_fol}/{dom}/{sc}/lons.npy'
    lats = np.load(lats)
    lons = np.load(lons)
    d_x = np.max(lons)-np.min(lons)
@@ -237,14 +242,15 @@ def build_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    fig.tight_layout()
    fig.savefig(f_tmp)
    
-   os.system(f'convert {f_tmp} -trim /tmp/output.png')
-   os.system(f'mv /tmp/output.png {f_tmp}')
+   os.system(f'convert {f_tmp} -trim {f_tmp1}')
+   os.system(f'mv {f_tmp1} {f_tmp}')
    txt = 'eurekka'
    txt = f"{prop_names[P.scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
    send_media(bot,chatID,job_queue, P, caption=txt,
                                        t_del=5*60, t_renew=6*60*60,
                                        dis_notif=False,
                                        recycle=True)
+   os.system(f'rm {f_tmp}')
 
 
 def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,

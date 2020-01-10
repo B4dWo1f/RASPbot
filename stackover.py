@@ -343,7 +343,7 @@ def hour_message():
    return 'Elige hora:'
 
 def finalmessage():
-   return 'You have selected:'
+   return 'Enviando:'
 
 def places_message():
    return 'Elige zona:'
