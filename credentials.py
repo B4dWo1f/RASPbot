@@ -27,11 +27,14 @@ class MyBot(object):
          msg += f'  --> {chid}\n'
       return msg
 
-def encode_credentials(key, chatid):  #, fname='bot.token'):
+def encode_credentials(key, chatids):  #, fname='bot.token'):
    """ Encode the key and main chatid in a file """
+   if not isinstance(chatids,list): chatids = [chatids]
    key    = encode(bytes(key,'utf-8')).decode('utf-8')
-   chatid = encode(bytes(chatid,'utf-8')).decode('utf-8')
-   return key, chatid
+   chid = []
+   for chatid in chatids:
+      chid.append( encode(bytes(chatid,'utf-8')).decode('utf-8') )
+   return key, chid
 
 def get_credentials(api_file=here+'/telegram_bot.private'):
    """ decode the key and main chatid from a file """
@@ -65,15 +68,16 @@ def restricted(func):
 
 if __name__ == '__main__':
    import sys
-   try:
-      key,chatID = sys.argv[1:]
-      key,chatID = encode_credentials(key, chatID)
+   args = sys.argv[1:]
+   if len(args) == 1:
+      args = args[0]
+      if args.endswith('token'):
+         Bot = get_credentials(sys.argv[1])
+         print(Bot.token)
+         print(Bot.chatIDs)
+      else: print('don\'t know what to do')
+   else:
+      key,*chatIDs = sys.argv[1:]
+      key,chatIDs = encode_credentials(key, chatIDs)
       print(key)
-      print(chatID)
-   except ValueError:
-      token,chatID = get_credentials(sys.argv[1])
-      print(token)
-      print(chatID)
-   except IndexError:
-      print('File not specified')
-      exit()
+      print(chatIDs)

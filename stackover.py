@@ -360,7 +360,7 @@ def hola(update, context):
 
 ############################# Handlers #########################################
 # token, Bcast_chatID = CR.get_credentials('Tester.token')
-MB = CR.get_credentials('Tester.token')
+MB = CR.get_credentials(RP.token_file)
 token = MB.token
 Bcast_chatID = MB.chatIDs[-1]
 U = Updater(token, use_context=True)
