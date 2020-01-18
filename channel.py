@@ -141,11 +141,10 @@ def broadcast(context):
    bot = context.bot
    now = dt.datetime.now()
    tday = now.date()
-
    send_frentes(Bcast_chatID, bot)
-   send_sfcwind(Bcast_chatID, bot)
+   # send_sfcwind(Bcast_chatID, bot)
    send_tormentas(Bcast_chatID, bot)
-   send_poll(Bcast_chatID, bot, ftmp='mypoll.txt')
+   # send_poll(Bcast_chatID, bot, ftmp='mypoll.txt')
    LG.info('Finished broadcast of the day')
 
 
