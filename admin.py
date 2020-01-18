@@ -60,22 +60,25 @@ def connect(file_db='my_database.db'):
 
 
 def show_all(conn,table=None):
+   msg = ''
    c = conn.cursor()
    if table == None:
       c.execute("SELECT name FROM sqlite_master WHERE type='table';")
       tables = [t[0] for t in c.fetchall()]
       for table in tables:
-         print(f'Table: {table}')
-         show_all(conn,table=table)
-         print('')
+         msg += f'Table: {table}\n'
+         msg += show_all(conn,table=table)
+         msg += '\n'
+      msg += '\n'
    else:
       c.execute(f'SELECT * FROM {table}')
       names = list(map(lambda x: x[0], c.description))
-      print(*names)
+      msg += ' '.join(names) + '\n'
       rows = c.fetchall()
       for row in rows:
-         print(*row)
+         msg += ' '.join([str(x) for x in row]) + '\n'
    c.close()
+   return msg.strip()
 
 
 def get_entry(conn,table,field,value):
@@ -196,10 +199,10 @@ if __name__ == '__main__':
    # file_id = '2345ty6u7j6543re'
    # fmt = '%d/%m/%Y-%H:00'
    # insert_file(conn,req.strftime(fmt),val.strftime(fmt),vec,scal,cov,file_id)
-   # show_all(conn)
+   # print(show_all(conn))
    # print('\n\nRepeating\n')
    # insert_file(conn,req.strftime(fmt),val.strftime(fmt),vec,scal,cov,file_id)
-   # show_all(conn)
+   # print(show_all(conn))
 
    conn,c = connect(sqlite_file)
-   show_all(conn)
+   print(show_all(conn,"users"))

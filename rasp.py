@@ -76,6 +76,32 @@ def restart(update,context):
                             parse_mode=ParseMode.MARKDOWN)
    Thread(target=stop_and_restart).start()
 
+@CR.restricted
+def stats(update,context):
+   def format_stats(header,lines):
+      lens = [10,5,5]
+      chatid,uname,fname,lname,admin,usage = header.split()
+      header = [fname.ljust(10)[:10],
+                admin.ljust(5)[:5],
+                usage.ljust(5)[:5]]
+      header = ' '.join(header)
+      fmt_lines = []
+      for l in lines:
+         ll = l.split()
+         fname = ll[2].ljust(10)[:10]
+         adm_lv = ll[-2].ljust(5)[:5]
+         usage = ll[-1].ljust(5)[:5]
+         fmt_lines.append(' '.join([fname,adm_lv,usage]))
+      return '\n'.join([header] + fmt_lines)
+   conn,c = admin.connect(RP.DBname)
+   usage = admin.show_all(conn,'users').splitlines()
+   header = usage[0]
+   txt = format_stats(header, usage[1:])
+   txt = f'`{txt}`'
+   chatID = update['message']['chat']['id']
+   context.bot.send_message(chat_id=chatID, text=txt, 
+                            parse_mode=ParseMode.MARKDOWN)
+
 ## Soundings ###################################################################
 def sounding_selector(update,context):
    update.message.reply_text(places_message(),
@@ -387,10 +413,11 @@ D.add_handler(CommandHandler('blwind', blwind_selector))
 D.add_handler(CommandHandler('start', start))
 D.add_handler(CommandHandler('stop', stop))
 D.add_handler(CommandHandler('reload', restart))
+D.add_handler(CommandHandler('stats', stats))
 D.add_handler(CommandHandler('hola', hola))
 
 ## Setup DB for files ##########################################################
-admin.create_db('RaspBot.db')
+admin.create_db(RP.DBname)
 
 # Broadcast
 J.run_daily(channel.broadcast, dt.time(8,30), context=(Bcast_chatID,))
