@@ -77,6 +77,7 @@ def show_all(conn,table=None):
       rows = c.fetchall()
       for row in rows:
          msg += ' '.join([str(x) for x in row]) + '\n'
+      msg += '\n'
    c.close()
    return msg.strip()
 
@@ -205,4 +206,4 @@ if __name__ == '__main__':
    # print(show_all(conn))
 
    conn,c = connect(sqlite_file)
-   print(show_all(conn,"users"))
+   print(show_all(conn))  #,"users"))
