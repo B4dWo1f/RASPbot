@@ -17,6 +17,7 @@ import aemet
 import re
 import admin
 from admin import EntryNotFound
+import log_help
 import logging
 import os
 here = os.path.dirname(os.path.realpath(__file__))
@@ -53,6 +54,7 @@ def call_delete(context: telegram.ext.CallbackContext):
    m = context.bot.delete_message(chatID, msgID)
 
 
+@log_help.timer(LG)
 def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
                                                 dis_notif=False, recycle=True,
                                                 db_file='RaspBot.db'):
@@ -62,7 +64,7 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
             send the file again and replace the entry
    recycle: Boolean. check DB for previous send
    """
-   media_file = P.fname
+   media_file = P.fname   #XXX report missing file??
    if media_file[-4:] in ['.jpg', '.png']:
       send_func = bot.send_photo
       media = open(media_file,'rb')
@@ -95,6 +97,10 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
       except EntryNotFound: pass
    else: pass
    bot.send_chat_action(chat_id=chatID, action=Action)
+   if Action == ChatAction.UPLOAD_VIDEO and not isinstance(media,str):
+      txt =  'Nadie ha pedido esto aún, puede tardar algún minutillo en llegar'
+      txt += ', disculpa las molestias.'
+      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
    LG.debug(f'Sending {media}')
    M = send_func(chatID, media, caption=caption,
                                 timeout=300, disable_notification=dis_notif,
@@ -170,13 +176,32 @@ def parser_date(line):
       else: return date.replace(hour=h, minute=m, second=0, microsecond=0)
    except: raise
 
-def build_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
+def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    """
-   Date comes in local time
+   date here is local
    """
    dateUTC = date - get_utc_shift()
    dom='w2'
-   sc = get_sc(dateUTC)
+   sc = get_sc(date)   # XXX should it be UTC????
+   root_fol = RP.fol_plots    #f'{HOME}/Documents/RASP/PLOTS'
+   if date.time()==dt.time(0,0):
+      f_tmp = f'{root_fol}/{dom}/{sc}/{scalar}.mp4'
+   else:
+      f_tmp = build_image(date,scalar,vector,cover,dpi=dpi)
+   txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
+   P =  PlotDescriptor(dateUTC,vector,scalar,cover,fname=f_tmp)
+   send_media(bot,chatID,job_queue, P, caption=txt,
+                                       t_del=5*60, t_renew=6*60*60,
+                                       dis_notif=False,
+                                       recycle=True)
+
+def build_image(date,scalar,vector,cover,dpi=65):
+   """
+   Date comes in local time. After the first line it should be converted to UTC
+   """
+   dateUTC = date - get_utc_shift()
+   dom='w2'
+   sc = get_sc(dateUTC)   # XXX should it be UTC????
    root_fol = RP.fol_plots    #f'{HOME}/Documents/RASP/PLOTS'
    fol = f'{root_fol}/{dom}/{sc}'
    grids_fol = RP.fol_grids   #f'{HOME}/CODES/RASPlots/grids/{dom}/{sc}'
@@ -247,13 +272,7 @@ def build_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    
    os.system(f'convert {f_tmp} -trim {f_tmp1}')
    os.system(f'mv {f_tmp1} {f_tmp}')
-   txt = 'eurekka'
-   txt = f"{prop_names[P.scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
-   send_media(bot,chatID,job_queue, P, caption=txt,
-                                       t_del=5*60, t_renew=6*60*60,
-                                       dis_notif=False,
-                                       recycle=True)
-   os.system(f'rm {f_tmp}')
+   return f_tmp
 
 
 def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
@@ -286,56 +305,22 @@ def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
    os.system(f'rm {f_tmp}')
    return
 
-# def build_image(date,prop,prop_vec,bot,chatID,job_queue,dpi=65):
-#    """
-#    sed -e "s/XXhourXX/$hour/" w2_"$SC"_vec_scal_template.svg | sed -e "s/XXpropXX/$prop/" | sed -e "s/XXprop_vecXX/$prop_vec/" > foo.svg
-#    """
-#    props = {'sfcwind':'Viento Superficie', 'blwind':'Viento promedio',
-#             'bltopwind':'Viento Altura', 'hglider':'Techo (azul)'}
-#    f_tmp = '/tmp/test.png'
-#    svg_tmp = '/tmp/foo.svg'
-#    print('Building')
-#    print(date)
-#    print(date)
-#    print(prop)
-#    print(props[prop])
-#    title = f"{date.strftime('%a %d')} {props[prop]} {date.strftime('%H:%M')}"
-#    print('==>',title)
-#    sc = get_sc(date).lower()
-#    print('SC=',sc)
-#    if prop_vec != None: fname = f'w2_{sc}_vec_scal_template.svg'
-#    else: fname = f'w2_{sc}_scal_template.svg'
-#    print(' ',fname)
-#    svg = open(fname, 'r').read().strip()
-#    svg = svg.replace('XXhourXX', f'{date.hour*100:04d}')
-#    svg = svg.replace('XXpropXX', f'{prop}')
-#    svg = svg.replace('XXprop_vecXX', f'{prop_vec}')
-#    svg = svg.replace('XXtitleXX', f'{title}')
-#    with open(svg_tmp,'w') as f:
-#       f.write(svg)
-#    f.close()
-#    print(' ',svg_tmp)
-#    os.system(f'inkscape -z -b "#ffffff" -d {dpi} -e {f_tmp} {svg_tmp}')
-#    print(' ',f_tmp)
-#    txt = 'eureka'
-#    print('*-*-*-*')
-#    send_media(bot,chatID,job_queue, f_tmp, caption=txt,
-#                                          t_del=5*60, t_renew=6*60*60,
-#                                          dis_notif=False)
 
 def get_utc_shift():
    UTCshift = dt.datetime.now()-dt.datetime.utcnow()
    return dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
 
 def get_sc(date):
-   UTCshift = dt.datetime.now()-dt.datetime.utcnow()
-   utcdate = date - UTCshift
-   now = dt.datetime.utcnow()
+   ## XXX should everything be in UTC?
+   # UTCshift = dt.datetime.now()-dt.datetime.utcnow()
+   # utcdate = date - UTCshift
+   # now = dt.datetime.utcnow()
+   now = dt.datetime.now()
    day = dt.timedelta(days=1)
-   if   utcdate.date() == now.date(): return 'SC2'
-   elif utcdate.date() == now.date()+day: return 'SC2+1'
-   elif utcdate.date() == now.date()+2*day: return 'SC4+2'
-   elif utcdate.date() == now.date()+3*day: return 'SC4+3'
+   if   date.date() == now.date(): return 'SC2'
+   elif date.date() == now.date()+day: return 'SC2+1'
+   elif date.date() == now.date()+2*day: return 'SC4+2'
+   elif date.date() == now.date()+3*day: return 'SC4+3'
    else: return None
 
 def locate(date,prop):

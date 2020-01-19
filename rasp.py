@@ -186,19 +186,23 @@ def keeper(update,context):
                                     message_id = messageID,
                                     text = txt)
       # Send picture or do something
-      date = dt.datetime.now()
-      date = date + dt.timedelta(days=int(context.user_data['day']))
-      date = date.replace(hour=int(context.user_data['hour']))
-      date = date.replace(minute=0,second=0,microsecond=0)
+      try:
+         date = dt.datetime.now()
+         date = date + dt.timedelta(days=int(context.user_data['day']))
+         date = date.replace(hour=int(context.user_data['hour']))
+         date = date.replace(minute=0,second=0,microsecond=0)
+      except ValueError:
+         date = dt.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
       if context.user_data['operation'] == 'sounding':
          place = context.user_data['place']
          tool.send_sounding(place,date,context.bot,chatID,job_queue)
       elif context.user_data['operation'] == 'map':
          context.user_data['cover'] = None  #XXX future implementation
-         tool.build_image(date, context.user_data['scalar'],
-                                context.user_data['vector'],
-                                context.user_data['cover'],
-                                context.bot,chatID,job_queue)
+         # tool.build_image(date, context.user_data['scalar'],
+         tool.decide_image(date, context.user_data['scalar'],
+                                 context.user_data['vector'],
+                                 context.user_data['cover'],
+                                 context.bot,chatID,job_queue)
       # context.user_data = {}   # reset after sending??
 
 
@@ -347,6 +351,7 @@ def hour_keyboard():
                 IlKB("18:00", callback_data='hour_18:00'),
                 IlKB("19:00", callback_data='hour_19:00'),
                 IlKB("20:00", callback_data='hour_20:00')],
+               [IlKB('Todas (video)', callback_data='hour_all')],
                [IlKB('Volver a empezar', callback_data='main'),
                 IlKB('Cancelar', callback_data='stop')]]
    return InlineKeyboardMarkup(keyboard)
