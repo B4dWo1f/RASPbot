@@ -29,33 +29,20 @@ def make_frentes_gif(vidname='/tmp/frentes.mp4'):
            #--- Pasado ---
            base + (now-day).strftime('%Y%m%d')+'12+060_ww_g1x0a2c2.gif',
            base + (now-day).strftime('%Y%m%d')+'12+072_ww_g1x0a2d3.gif']
-   f = open('/tmp/files.txt','w')
-   fps = 1
-   N = 2
    fails = []
    for i,url in enumerate(urls):
       try:
          a = urlretrieve(url, f'/tmp/frentes_{i}.gif')
-         os.system(f'convert /tmp/frentes_{i}.gif /tmp/frentes_{i}.jpg')
-         os.system(f'rm /tmp/frentes_{i}.gif')
-         for _ in range(N):
-            f.write(f'/tmp/frentes_{i}.jpg\n')
          fails.append(True)
       except HTTPError:
          fails.append(False)
          continue
-   f.close()
-   tmp_file = '/tmp/files.txt'
-   com = f'mencoder -quiet -nosound -ovc lavc -lavcopts vcodec=mpeg4'
-   com += f' -o /tmp/frentes_temp.mp4'
-   com += f' -mf type=jpeg:fps={max([1,int(fps/N)])} mf://@{tmp_file}'
-   com += ' > /dev/null 2> /dev/null'
+   com = 'convert -delay 200 -quality 20 -size 200 -loop 0'
+   com += ' /tmp/frentes_*.gif /tmp/frentes.gif'
    os.system(com)
-   com =  f'ffmpeg -y -i /tmp/frentes_temp.mp4 -vcodec mpeg4 -threads 2'
-   com += f' -b:v 1500k -acodec libmp3lame -ab 160k {vidname}'
-   com += ' > /dev/null 2> /dev/null'
+   com = 'ffmpeg -i /tmp/frentes.gif -movflags faststart -pix_fmt yuv420p'
+   com += f' -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" {vidname}'
    os.system(com)
-   os.system(f'rm /tmp/frentes_*.jpg /tmp/frentes_temp.mp4')
    return all(fails)
 
 
