@@ -38,10 +38,10 @@ def make_frentes_gif(vidname='/tmp/frentes.mp4'):
          fails.append(False)
          continue
    com = 'convert -delay 200 -quality 20 -size 200 -loop 0'
-   com += ' /tmp/frentes_*.gif /tmp/frentes.gif'
+   com += ' /tmp/frentes_*.gif /tmp/frentes.gif 2> /dev/null'
    os.system(com)
    com = 'ffmpeg -i /tmp/frentes.gif -movflags faststart -pix_fmt yuv420p'
-   com += f' -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" {vidname}'
+   com += f' -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" {vidname} 2> /dev/null'
    os.system(com)
    return all(fails)
 
@@ -128,8 +128,8 @@ def broadcast(context):
    bot = context.bot
    now = dt.datetime.now()
    tday = now.date()
+   send_sfcwind(Bcast_chatID, bot)
    send_frentes(Bcast_chatID, bot)
-   # send_sfcwind(Bcast_chatID, bot)
    send_tormentas(Bcast_chatID, bot)
    # send_poll(Bcast_chatID, bot, ftmp='mypoll.txt')
    LG.info('Finished broadcast of the day')
