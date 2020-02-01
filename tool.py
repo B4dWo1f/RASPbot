@@ -45,6 +45,12 @@ class PlotDescriptor(object):
       self.scalar = str(scalar)
       self.cover  = str(cover)
       self.fname  = str(fname)
+   def __str__(self):
+      msg =  f'Date  : {self.date_valid}\n'
+      msg += f'Vector: {self.vector}\n'
+      msg += f'Scalar: {self.scalar}\n'
+      msg += f'File: {self.fname}'
+      return msg
 
 def call_delete(context: telegram.ext.CallbackContext):
    """
@@ -88,8 +94,6 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
          if (now-date).total_seconds() < t_renew:
             LG.debug(f'Re-using {media_file}, previously sent')
             media = f_id
-            if send_func == bot.send_video:
-               send_func = bot.send_animation
             skip = True
          else:
             LG.debug(f'{media_file} is too old. Delete entry and send again')
@@ -108,7 +112,7 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
    admin.user_usage(conn,chatID,1)
    LG.info(f'File sent to chat {chatID}')
    try: file_id = M['photo'][-1]['file_id']
-   except IndexError: file_id = M['animation']['file_id']
+   except IndexError: file_id = M['video']['file_id']
    if not skip:
       admin.insert_file(conn, now.strftime(fmt), P.date_valid, P.vector,
                               P.scalar, P.cover,file_id)
