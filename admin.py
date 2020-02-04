@@ -8,6 +8,9 @@ LG = logging.getLogger(__name__)
 
 ## Common tools ################################################################
 class EntryNotFound(Exception):
+   """
+   Custom exception to report missing entry from the DB
+   """
    pass
 
 
@@ -34,7 +37,10 @@ def create_db(file_db='my_database.db'):
    table = 'users'
    with conn:
       query = f"CREATE TABLE {table} ({field_types})"
-      try: c.execute(query)
+      try:
+         LG.debug('Attempting to create DB')
+         LG.debug(query)
+         c.execute(query)
       except OperationalError:
          LG.warning(f'table {table} already exists')
 
@@ -47,19 +53,27 @@ def create_db(file_db='my_database.db'):
    table = 'files'
    with conn:
       query = f"CREATE TABLE {table} ({field_types})"
-      try: c.execute(query)
+      try:
+         LG.debug(f'Creating table {table}')
+         LG.debug(query)
+         c.execute(query)
       except OperationalError:
          LG.warning(f'table {table} already exists')
    return conn, c
 
 
 def connect(file_db='my_database.db'):
+   """
+   Create a SQLite connection and cursor
+   """
+   LG.debug(f'Connecting to DB: {file_db}')
    conn = sqlite3.connect(file_db)
    c = conn.cursor()
    return conn,c
 
 
 def show_all(conn,table=None):
+   """ Return string with all the DB information """
    msg = ''
    c = conn.cursor()
    if table == None:
@@ -98,34 +112,52 @@ def get_entry(conn,table,field,value):
 
 
 def remove_entry(conn,table,field,value):
+   """
+   Remove an entry defined by field=value from the DB
+   """
    c = conn.cursor()
    with conn:
+      LG.debug(f"DELETE from {table} WHERE {field}={value}")
       c.execute(f"DELETE from {table} WHERE {field}=:value",{'value': value})
    c.close()
 
 
 ## FILES #######################################################################
 def insert_file(conn, date_req, date_pred, vector, scalar, cover, file_id):
+   """
+   Insert sent file unless that entry already exists
+   """
    vector = str(vector)
    scalar = str(scalar)
    cover = str(cover)
    c = conn.cursor()
    with conn:
       try:
+         LG.debug('Inserting sent file')
+         LG.debug(f'{date_pred}, {vector}, {scalar}, {cover}')
          ff = get_file(conn, date_pred, vector, scalar, cover)
          LG.warning('Entry already exists')
       except EntryNotFound:
-         LG.debug('Entry Not Found')
-         c.execute(f"INSERT INTO files VALUES (:date_req, :date_pred, "+
-                   f":vector, :scalar, :cover, :file_id)",
-                   {'date_req':date_req, 'date_pred':date_pred, 'vector':vector,
-                    'scalar':scalar, 'cover':cover, 'file_id':file_id})
+         LG.debug(f'Inserting entry')
+         msg =  f"INSERT INTO files VALUES ({date_req}, {date_pred},"
+         msg += f" {vector}, {scalar}, {cover}, {file_id}"
+         LG.debug(msg)
+         query =  f"INSERT INTO files VALUES (:date_req, :date_pred, "
+         query += f":vector, :scalar, :cover, :file_id)"
+         c.execute(query,{'date_req':date_req, 'date_pred':date_pred,
+                          'vector':vector, 'scalar':scalar, 'cover':cover,
+                          'file_id':file_id})
    c.close()
 
 
 def get_file(conn, date_pred, vector, scalar, cover,table='files'):
+   """
+   Retrieve sent file
+   """
    c = conn.cursor()
    with conn:
+      LG.debug('Retrieve file')
+      LG.debug(f'{date_pred}, {vector}, {scalar}, {cover}')
       c.execute(f"SELECT * FROM {table} WHERE "+
                 f"date_prediction=:pred AND "+
                 f"vector=:vector AND "+
@@ -150,21 +182,33 @@ def remove_file(conn,f_id,table='files'):
 
 ## USERS #######################################################################
 def user_usage(conn,chatid,usage):
+   """
+   Add "usage" to user's usage
+   """
+   LG.debug(f'Update usage for chat {chatid}')
    c = conn.cursor()
    with conn:
       current_usage = get_user(conn,'chatid',chatid)[0][-1]
+      msg = f'Update usage from {current_usage} to'
       usage += current_usage
+      msg += f' {usage}'
+      LG.debug(msg)
       c.execute(f"UPDATE users SET usage=:usa WHERE chatid=:chatid",
                  {'usa':usage, 'chatid':chatid})
 
 
 def insert_user(conn,chatid,uname,fname,lname,admin_level,usage=0):
+   """
+   Insert new user if it didn't exist previously
+   """
    c = conn.cursor()
    with conn:
       try:
          ff = get_user(conn,'username',uname)
          LG.warning('User already exists')
       except EntryNotFound:
+         msg = f'Inserting new user: {uname}, {fname}, {lname}, {admin_level}'
+         LG.debug(msg)
          c.execute("INSERT INTO users VALUES "+
                    f"(:pl0, :pl1, :pl2, :pl3, :pl4, :pl5)",
                    {'pl0': chatid, 'pl1': uname, 'pl2': fname,
@@ -173,11 +217,19 @@ def insert_user(conn,chatid,uname,fname,lname,admin_level,usage=0):
 
 
 def get_user(conn,field,value):
+   """
+   Retrieve user info from a DB
+   field allows the definition of the field to look for (username, first_name or
+   last_name)
+   """
    ret = get_entry(conn,'users',field,value)
    if len(ret) > 0: return ret
    else: raise EntryNotFound
 
 def remove_user(conn,field,value):
+   """
+   Remove user from DataBase
+   """
    return remove_entry(conn,'users',field,value)
 
 
