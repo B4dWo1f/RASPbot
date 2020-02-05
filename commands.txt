@@ -1,0 +1,10 @@
+sondeo - Ver curva de estado
+map -  Mapa a medida eligiendo flujo de viento y la propiedad deseada
+sfcwind -  Viento en superficie
+blwind -  Viento promedio
+bltopwind -  Viento en el techo de la capa convectiva
+techo - Altura máxima de la térmica (en días de térmica azul)
+termicas - Potencia máxima de la térmica
+convergencias - Velocidad vertical máxima del viento (ignorando térmicas)
+start - Registrarse como usuario del bot
+stop - Detener el bot
