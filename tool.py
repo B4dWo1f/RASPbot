@@ -62,7 +62,7 @@ def call_delete(context: telegram.ext.CallbackContext):
 
 @log_help.timer(LG)
 def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
-                                                dis_notif=False, recycle=True,
+                                                dis_notif=False, recycle=False,
                                                 db_file='RaspBot.db'):
    """
    media_file: file to be sent
@@ -197,7 +197,7 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    send_media(bot,chatID,job_queue, P, caption=txt,
                                        t_del=5*60, t_renew=6*60*60,
                                        dis_notif=False,
-                                       recycle=True)
+                                       recycle=False)
 
 def build_image(date,scalar,vector,cover,dpi=65):
    """
