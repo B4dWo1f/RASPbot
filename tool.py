@@ -3,6 +3,7 @@
 
 import common
 RP = common.load(fname='config.ini')
+import credentials as CR
 import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -12,16 +13,17 @@ from telegram import ChatAction, ParseMode
 import telegram
 import string
 from urllib.request import urlretrieve
+from urllib.error import HTTPError
 import datetime as dt
 import aemet
 import re
 import admin
 from admin import EntryNotFound
-import log_help
-import logging
 import os
 here = os.path.dirname(os.path.realpath(__file__))
 HOME = os.getenv('HOME')
+import log_help
+import logging
 LG = logging.getLogger(__name__)
 #f_id_files = here+'/pics_ids.txt'
 f_id_files = here+'/files.db'
@@ -309,6 +311,27 @@ def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
    os.system(f'rm {f_tmp}')
    return
 
+def send_rain(date,bot,chatID,job_queue, t_del=5*60,t_renew=6*60*60,
+                                                   dis_notif=False):
+   """
+   Send Aemet's forecast for rain [around Madrid]
+   """
+   dateUTC = date - get_utc_shift()
+   f_tmp = '/tmp/' + rand_name() + '.png'
+   try: urlretrieve(aemet.rain(date), f_tmp)
+   except HTTPError:
+      txt = 'Lo siento, el pronóstico que has pedido no está disponible'
+      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
+      return
+   P =  PlotDescriptor(dateUTC,None,None,None,fname=f_tmp)
+   # bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
+   txt = 'https://www.aemet.es/es/eltiempo/prediccion/modelosnumericos/'
+   txt += 'harmonie_arome_ccaa?opc2=mad&opc3=pr'
+   send_media(bot,chatID,job_queue, P, caption=txt,
+                                         t_del=5*60, t_renew=6*60*60,
+                                         dis_notif=False,recycle=False)
+   os.system(f'rm {f_tmp}')
+
 
 def get_utc_shift():
    UTCshift = dt.datetime.now()-dt.datetime.utcnow()
@@ -467,5 +490,30 @@ def myhelp(update, context):
    txt += f"```/techo``` - Altura máxima de las térmicas (en días de térmica azul)\n"
    txt += f"```/termicas``` - Potencia máxima de las térmicas\n"
    txt += f"```/convergencias``` - Velocidad vertical máxima del viento (ignorando térmicas)"
+   M = context.bot.send_message(chatID, text=txt, 
+                                parse_mode=ParseMode.MARKDOWN)
+
+@CR.restricted(0)
+def log(update, context):
+   # print(context.args)
+   LG.info('Log')
+   def tail(fname, n=10, bs=1024):
+      with open(fname) as f:
+         f.seek(0,2)
+         l = 1-f.read(1).count('\n')
+         B = f.tell()
+         while n >= l and B > 0:
+            block = min(bs, B)
+            B -= block
+            f.seek(B, 0)
+            l += f.read(block).count('\n')
+         f.seek(B, 0)
+         l = min(l,n)
+         lines = f.readlines()[-l:]
+      return [l.strip() for l in lines]
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
+   txt = '\n'.join(tail(RP.log,3))
+   txt = f'```\n{txt}\n```'
    M = context.bot.send_message(chatID, text=txt, 
                                 parse_mode=ParseMode.MARKDOWN)

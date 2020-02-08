@@ -22,6 +22,8 @@ import datetime as dt
 from bs4 import BeautifulSoup
 from urllib.request import Request, urlopen
 import re
+import logging
+LG = logging.getLogger(__name__)
 
 names = {'gre1':'Gredos', 'mad2':'Guadarrama', 'rio1':'Rioja', 'arn2':'Aragon'}
 
@@ -100,3 +102,20 @@ def get_temp(place, date):
             return float(T.text)
    return None
 
+
+def rain(T):
+   """
+   Returns the url for the image from Aemet's rain:
+      Predicción > Modelos numéricos > HARMONIE-AROME CC. AA.
+   """
+   LG.info(f'Rain for {T}')
+   now = dt.datetime.now()
+   ref = now.replace(hour=12,minute=0,second=0,microsecond=0)
+   diff = T-ref
+   diff = int(diff.total_seconds()/60/60) - 1
+   url_base = 'https://www.aemet.es/imagenes_d/eltiempo/prediccion/modelos_num/'
+   url_base += 'harmonie_arome_ccaa'
+   url = f"{url_base}/{ref.strftime('%Y%m%d')}12+"
+   url += f"{diff:03d}_ww_asx0d20{diff:02d}.png"
+   LG.debug(url)
+   return url

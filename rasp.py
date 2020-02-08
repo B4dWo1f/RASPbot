@@ -51,7 +51,7 @@ def shutdown():
    U.stop()
    U.is_idle = False
 
-@CR.restricted
+@CR.restricted(0)
 def stop(update, context):
    """ Completely halt the Bot """
    chatID = update['message']['chat']['id']
@@ -67,7 +67,7 @@ def stop_and_restart():
    U.stop()
    os.execl(sys.executable, sys.executable, *sys.argv)
 
-@CR.restricted
+@CR.restricted(0)
 def restart(update,context):
    """ Reload the Bot to update code, for instance """
    txt = 'Bot is restarting...'
@@ -76,7 +76,7 @@ def restart(update,context):
                             parse_mode=ParseMode.MARKDOWN)
    Thread(target=stop_and_restart).start()
 
-@CR.restricted
+@CR.restricted(0)
 def stats(update,context):
    def format_stats(header,lines):
       lens = [10,5,5]
@@ -209,6 +209,9 @@ def keeper(update,context):
                                  context.user_data['cover'],
                                  context.bot,chatID,job_queue)
          context.user_data = {}   # reset after sending??
+      elif context.user_data['operation'] == 'rain':
+         tool.send_rain(date,context.bot,chatID,job_queue)
+
 
 
 ## Selectors #################################
@@ -336,6 +339,23 @@ def wblmaxmin_menu(update,context):
    cover  = None
    menu(update,context,main_callback,operation,scalar,vector,cover)
 
+## Rain
+def rain_selector(update,context):
+   main_callback = 'main_rain'
+   operation = 'rain'
+   scalar = None
+   vector = None
+   cover  = None
+   selector(update,context,main_callback,operation,scalar,vector,cover)
+
+def rain_menu(update,context):
+   main_callback = 'main_rain'
+   operation = 'map'
+   scalar = None
+   vector = None
+   cover  = None
+   menu(update,context,main_callback,operation,scalar,vector,cover)
+
 ############################ Keyboards #########################################
 def reset_options(main_callback):
    dummy = [IlKB('Volver a empezar', callback_data=main_callback),
@@ -446,6 +466,7 @@ def places_message():
 # token, Bcast_chatID = CR.get_credentials('Tester.token')
 MB = CR.get_credentials(RP.token_file)
 token = MB.token
+admin_chatID = MB.chatIDs[-1]
 Bcast_chatID = MB.chatIDs[-1]
 U = Updater(token, use_context=True)
 D = U.dispatcher
@@ -476,6 +497,8 @@ D.add_handler(CommandHandler('termicas', thermals_selector))
 D.add_handler(CallbackQueryHandler(thermals_menu, pattern='main_thermals'))
 D.add_handler(CommandHandler('convergencias', wblmaxmin_selector))
 D.add_handler(CallbackQueryHandler(wblmaxmin_menu, pattern='main_wblmaxmin'))
+D.add_handler(CommandHandler('rain', rain_selector))
+D.add_handler(CallbackQueryHandler(rain_menu, pattern='main_rain'))
 
 # Admin
 D.add_handler(CommandHandler('start', start))
@@ -484,6 +507,7 @@ D.add_handler(CommandHandler('reload', restart))
 D.add_handler(CommandHandler('stats', stats))
 D.add_handler(CommandHandler('hola', tool.hola))
 D.add_handler(CommandHandler('help', tool.myhelp))
+D.add_handler(CommandHandler('log', tool.log))
 
 ## Setup DB for files ##########################################################
 admin.create_db(RP.DBname)
