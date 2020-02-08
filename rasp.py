@@ -166,7 +166,9 @@ def keeper(update,context):
       keyboard = day_keyboard()
    elif data.startswith('day_'):
       context.user_data['day'] = query['data'].replace('day_','')
-      txt = hour_message()
+      if context.user_data['operation'] != 'rain': warn = False
+      else: warn = True
+      txt = hour_message(warn)
       if context.user_data['operation'] != 'map': vid=False
       else: vid=True
       keyboard = hour_keyboard(context.user_data['main_callback'],offer_vid=vid)
@@ -453,8 +455,10 @@ def cover_message():
 def day_message():
    return 'Elige día:'
 
-def hour_message():
-   return 'Elige hora:'
+def hour_message(warn=False):
+   if warn:
+      return 'Elige hora:\n(puede que no todas las horas estén disponibles)'
+   else: return 'Elige hora:'
 
 def finalmessage():
    return 'Enviando:'
