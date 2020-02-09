@@ -109,13 +109,21 @@ def rain(T):
       Predicción > Modelos numéricos > HARMONIE-AROME CC. AA.
    """
    LG.info(f'Rain for {T}')
-   now = dt.datetime.now()
-   ref = now.replace(hour=12,minute=0,second=0,microsecond=0)
-   diff = T-ref
-   diff = int(diff.total_seconds()/60/60) - 1
    url_base = 'https://www.aemet.es/imagenes_d/eltiempo/prediccion/modelos_num/'
    url_base += 'harmonie_arome_ccaa'
-   url = f"{url_base}/{ref.strftime('%Y%m%d')}12+"
-   url += f"{diff:03d}_ww_asx0d20{diff:02d}.png"
+   now = dt.datetime.now()
+   if dt.time(6,0) < now.time() < dt.time(12,0):
+      ref = now.replace(hour=6,minute=0,second=0,microsecond=0)
+      diff = T-ref
+      diff = int(diff.total_seconds()/60/60) - 1
+      url = f"{url_base}/{ref.strftime('%Y%m%d')}06+"
+      url += f"{diff:03d}_ww_asx0d60{diff:02d}.png"
+   else:
+      ref = now.replace(hour=12,minute=0,second=0,microsecond=0)
+      diff = T-ref
+      diff = int(diff.total_seconds()/60/60) - 1
+      url = f"{url_base}/{ref.strftime('%Y%m%d')}12+"
+      url += f"{diff:03d}_ww_asx0d20{diff:02d}.png"
+   print(url)
    LG.debug(url)
    return url
