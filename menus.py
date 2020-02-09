@@ -82,7 +82,8 @@ def keeper(update,context):
       context.user_data['hour'] = query['data'].replace('hour_','').split(':')[0]
       txt = finalmessage() + '\n'
       for k,v in context.user_data.items():
-         txt += f'  {k}: {v}\n'
+         if k in ['day','hour','scalar','vector']:
+            txt += f'  {k}: {v}\n'
       keyboard = None
    elif data == 'stop':
       txt = 'Cancelado!'

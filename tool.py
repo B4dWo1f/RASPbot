@@ -109,10 +109,6 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
       except EntryNotFound: pass
    else: pass
    bot.send_chat_action(chat_id=chatID, action=Action)
-   if Action == ChatAction.UPLOAD_VIDEO and not isinstance(media,str):
-      txt =  'Nadie ha pedido esto aún, puede tardar algún minutillo en llegar'
-      txt += ', disculpa las molestias.'
-      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
    LG.debug(f'Sending {media}')
    M = send_func(chatID, media, caption=caption,
                                 timeout=300, disable_notification=dis_notif,
