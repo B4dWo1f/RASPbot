@@ -124,6 +124,5 @@ def rain(T):
       diff = int(diff.total_seconds()/60/60) - 1
       url = f"{url_base}/{ref.strftime('%Y%m%d')}12+"
       url += f"{diff:03d}_ww_asx0d20{diff:02d}.png"
-   print(url)
    LG.debug(url)
    return url
