@@ -331,7 +331,8 @@ def send_rain(date,bot,chatID,job_queue, t_del=5*60,t_renew=6*60*60,
       return
    P =  PlotDescriptor(dateUTC,None,None,None,fname=f_tmp)
    # bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
-   txt = 'https://www.aemet.es/es/eltiempo/prediccion/modelosnumericos/'
+   txt = 'Lluvia acumulada en 1 hora, sacada de Aemet:\n'
+   txt += 'https://www.aemet.es/es/eltiempo/prediccion/modelosnumericos/'
    txt += 'harmonie_arome_ccaa?opc2=mad&opc3=pr'
    send_media(bot,chatID,job_queue, P, caption=txt,
                                          t_del=5*60, t_renew=6*60*60,
