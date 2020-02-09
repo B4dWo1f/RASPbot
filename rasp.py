@@ -40,9 +40,14 @@ def start(update, context):
    lname = ch.last_name
    if ch.id in CR.ADMINS_id: admin_level = 0
    else: admin_level = 3
-   txt = "I'm a bot, please talk to me!"
+   txt = 'Hola!\n'
+   txt += 'Puedes comprobar los comandos disponibles usando: /help\n'
+   txt += tool.help_txt().replace('`','')
+   print(txt)
    context.bot.send_message(chat_id=update.message.chat_id, text=txt)
    conn,c = admin.connect(RP.DBname)
+   ad_lv = min([usr[-2] for usr in admin.get_user(conn,'chatid',chatID)])
+   admin_level = min([admin_level,ad_lv])
    admin.insert_user(conn,chatID,uname,fname,lname,admin_level,0)
 
 # Stop
