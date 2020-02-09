@@ -326,7 +326,10 @@ def send_rain(date,bot,chatID,job_queue, t_del=5*60,t_renew=6*60*60,
    f_tmp = '/tmp/' + rand_name() + '.png'
    try: urlretrieve(aemet.rain(date), f_tmp)
    except HTTPError:
-      txt = 'Lo siento, el pronóstico que has pedido no está disponible'
+      txt = 'Lo siento, el pronóstico que has pedido no está disponible\n'
+      txt += 'Puedes comprobar las horas disponibles aquí:\n'
+      txt += 'https://www.aemet.es/es/eltiempo/prediccion/modelosnumericos/'
+      txt += 'harmonie_arome_ccaa?opc2=mad&opc3=pr'
       bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
       return
    P =  PlotDescriptor(dateUTC,None,None,None,fname=f_tmp)
@@ -483,17 +486,24 @@ def hola(update, context):
    M = context.bot.send_message(chatID, text=txt, 
                                 parse_mode=ParseMode.MARKDOWN)
 
-def myhelp(update, context):
-   """ echo-like service to check system status """
-   LG.info('Help')
-   try: chatID = update['message']['chat']['id']
-   except TypeError: chatID = update['callback_query']['message']['chat']['id']
+def help_txt():
    txt =  f"```/sfcwind``` - Viento en superficie\n"
    txt += f"```/bltopwind``` - Viento en el tope de la capa convectiva\n"
    txt += f"```/blwind``` - Viento promedio de toda la capa convectiva\n"
    txt += f"```/techo``` - Altura máxima de las térmicas (en días de térmica azul)\n"
    txt += f"```/termicas``` - Potencia máxima de las térmicas\n"
-   txt += f"```/convergencias``` - Velocidad vertical máxima del viento (ignorando térmicas)"
+   txt += f"```/convergencias``` - Velocidad vertical máxima del viento (ignorando térmicas)\n"
+   txt += f"```/sondeo``` - Curva de estado\n"
+   txt += f"```/lluvia``` - Lluvia acumulada en 1 hora (sacada de Aemet)\n"
+   txt += f"```/map``` - Mapa personalizado, combinando el flujo de viento deseado con cualquier otra propiedad\n"
+   return txt.strip()
+
+def myhelp(update, context):
+   """ echo-like service to check system status """
+   LG.info('Help')
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
+   txt = help_txt()
    M = context.bot.send_message(chatID, text=txt, 
                                 parse_mode=ParseMode.MARKDOWN)
 
