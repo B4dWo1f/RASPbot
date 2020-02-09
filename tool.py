@@ -509,7 +509,6 @@ def myhelp(update, context):
 
 @CR.restricted(0)
 def log(update, context):
-   # print(context.args)
    LG.info('Log')
    def tail(fname, n=10, bs=1024):
       with open(fname) as f:

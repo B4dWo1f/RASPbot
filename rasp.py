@@ -43,7 +43,6 @@ def start(update, context):
    txt = 'Hola!\n'
    txt += 'Puedes comprobar los comandos disponibles usando: /help\n'
    txt += tool.help_txt().replace('`','')
-   print(txt)
    context.bot.send_message(chat_id=update.message.chat_id, text=txt)
    conn,c = admin.connect(RP.DBname)
    ad_lv = min([usr[-2] for usr in admin.get_user(conn,'chatid',chatID)])
