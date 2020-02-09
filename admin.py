@@ -226,6 +226,7 @@ def get_user(conn,field,value):
    if len(ret) > 0: return ret
    else: raise EntryNotFound
 
+
 def remove_user(conn,field,value):
    """
    Remove user from DataBase
