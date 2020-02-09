@@ -1,10 +1,12 @@
 Consigue los pronósticos del RASP para la zona centro
 Opciones:
-/sondeo - Curva de estado
 /sfcwind - Viento en superficie
 /blwind - Viento promedio
 /bltopwind - Viento en altura
 /techo - Altura máxima de la térmica (en días de térmica azul)
 /termicas - Potencia máxima de la térmica
 /convergencias - Velocidad vertical máxima del viento (ignorando térmicas)
+/lluvia - Lluvia acumulada en 1 hora (Aemet)
+/sondeo - Curva de estado
 /map - Elige las capas que te interesan (flujo de viento, térmicas, convergencias...)
+/help - Muestra todas las opciones disponibles

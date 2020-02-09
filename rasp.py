@@ -136,7 +136,7 @@ D.add_handler(CommandHandler('termicas', menus.thermals_selector))
 D.add_handler(CallbackQueryHandler(menus.thermals_menu, pattern='main_thermals'))
 D.add_handler(CommandHandler('convergencias', menus.wblmaxmin_selector))
 D.add_handler(CallbackQueryHandler(menus.wblmaxmin_menu, pattern='main_wblmaxmin'))
-D.add_handler(CommandHandler('rain', menus.rain_selector))
+D.add_handler(CommandHandler('lluvia', menus.rain_selector))
 D.add_handler(CallbackQueryHandler(menus.rain_menu, pattern='main_rain'))
 
 # Admin
