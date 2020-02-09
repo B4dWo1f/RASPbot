@@ -112,7 +112,7 @@ def rain(T):
    url_base = 'https://www.aemet.es/imagenes_d/eltiempo/prediccion/modelos_num/'
    url_base += 'harmonie_arome_ccaa'
    now = dt.datetime.now()
-   if dt.time(6,0) < now.time() < dt.time(14,0):
+   if dt.time(6,0) < now.time() < dt.time(15,0):
       print('6-12')
       ref = now.replace(hour=6,minute=0,second=0,microsecond=0)
       diff = T-ref
