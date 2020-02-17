@@ -71,7 +71,8 @@ def call_delete(context: telegram.ext.CallbackContext):
 @log_help.timer(LG)
 def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
                                                 dis_notif=False, recycle=False,
-                                                db_file='RaspBot.db'):
+                                                db_file='RaspBot.db',
+                                                rm=False):
    """
    media_file: file to be sent
    t_renew: if file was registered in the database longer than t_renew seconds,
@@ -125,6 +126,7 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
    if t_del != None:
       msgID = M.message_id
       job_queue.run_once(call_delete,t_del, context=(chatID, msgID))
+   if rm: os.system(f'rm {media_file}')
 
 
 def rand_name(pwdSize=8):
@@ -194,14 +196,16 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    root_fol = RP.fol_plots    
    if date.time()==dt.time(0,0):
       f_tmp = f'{root_fol}/{dom}/{sc}/{scalar}.mp4'
+      rm = False
    else:
       f_tmp = build_image(date,scalar,vector,cover,dpi=dpi)
+      rm = True
    txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
    P =  PlotDescriptor(dateUTC,vector,scalar,cover,fname=f_tmp)
    send_media(bot,chatID,job_queue, P, caption=txt,
                                        t_del=5*60, t_renew=6*60*60,
                                        dis_notif=False,
-                                       recycle=False)
+                                       recycle=False,rm=rm)
 
 def build_image(date,scalar,vector,cover,dpi=65):
    """
