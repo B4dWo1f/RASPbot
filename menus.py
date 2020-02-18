@@ -145,6 +145,7 @@ def menu(update,context,main_callback,operation,scalar,vector,cover):
                                  text=day_message(),
                                  reply_markup=day_keyboard(main_callback))
 
+
 ## SFCwind
 def sfcwind_selector(update,context):
    main_callback = 'main_sfcwind'
@@ -161,7 +162,6 @@ def sfcwind_menu(update,context):
    vector = 'sfcwind'
    cover  = None
    menu(update,context,main_callback,operation,scalar,vector,cover)
-
 
 ## BLwind
 def blwind_selector(update,context):
@@ -227,6 +227,23 @@ def techo_menu(update,context):
    main_callback = 'main_hglider'
    operation = 'map'
    scalar = 'hglider'
+   vector = 'sfcwind'
+   cover  = None
+   menu(update,context,main_callback,operation,scalar,vector,cover)
+
+## Cloud
+def nube_selector(update,context):
+   main_callback = 'main_zsfclcl'
+   operation = 'map'
+   scalar = 'zsfclcl'
+   vector = 'sfcwind'
+   cover  = None
+   selector(update,context,main_callback,operation,scalar,vector,cover)
+
+def nube_menu(update,context):
+   main_callback = 'main_zsfclcl'
+   operation = 'map'
+   scalar = 'zsfclcl'
    vector = 'sfcwind'
    cover  = None
    menu(update,context,main_callback,operation,scalar,vector,cover)

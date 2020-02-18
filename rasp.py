@@ -136,10 +136,13 @@ D.add_handler(CommandHandler('blwind', menus.blwind_selector))
 D.add_handler(CallbackQueryHandler(menus.blwind_menu, pattern='main_blwind'))
 D.add_handler(CommandHandler('techo', menus.techo_selector))
 D.add_handler(CallbackQueryHandler(menus.techo_menu, pattern='main_hglider'))
+D.add_handler(CommandHandler('base_nube', menus.nube_selector))
+D.add_handler(CallbackQueryHandler(menus.nube_menu, pattern='main_zsfclcl'))
 D.add_handler(CommandHandler('termicas', menus.thermals_selector))
 D.add_handler(CallbackQueryHandler(menus.thermals_menu, pattern='main_thermals'))
 D.add_handler(CommandHandler('convergencias', menus.wblmaxmin_selector))
 D.add_handler(CallbackQueryHandler(menus.wblmaxmin_menu, pattern='main_wblmaxmin'))
+# Aemet
 D.add_handler(CommandHandler('lluvia', menus.rain_selector))
 D.add_handler(CallbackQueryHandler(menus.rain_menu, pattern='main_rain'))
 
