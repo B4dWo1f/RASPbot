@@ -559,7 +559,7 @@ def log(update, context):
       return [l.strip() for l in lines]
    try: chatID = update['message']['chat']['id']
    except TypeError: chatID = update['callback_query']['message']['chat']['id']
-   txt = '\n'.join(tail(RP.log,3))
+   txt = '\n'.join(tail(RP.log))
    txt = f'```\n{txt}\n```'
    M = context.bot.send_message(chatID, text=txt, 
                                 parse_mode=ParseMode.MARKDOWN)
