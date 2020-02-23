@@ -24,6 +24,8 @@ class MyBot(object):
    def __init__(self, token, chatIDs):
       self.token = token
       self.chatIDs = chatIDs
+      self.me = chatIDs[0]
+      self.channel = chatIDs[-1]
       self.whitelist = ADMINS_id
       self.whitelist_id = self.whitelist
       self.whitelist_un = ADMINS_un
@@ -72,7 +74,7 @@ def restricted(lv):   # wrapper
          admin_level = admin.get_user(conn,'chatid',chatID)[0][-2]
          if admin_level <= lv: return func(update, context, *args, **kwargs)
          else:
-            txt = "Unauthorized access denied for %s (%s)"%(user_nm,user_id)
+            txt = "Lo siento, no tienes autorización para usar este comando"
             LG.warning(txt)
             bot.send_message(chat_id=chatID, text=txt, parse_mode='Markdown')
             return
