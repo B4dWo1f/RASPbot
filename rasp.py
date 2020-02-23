@@ -41,9 +41,13 @@ def start(update, context):
    if ch.id in CR.ADMINS_id: admin_level = 0
    else: admin_level = 3
    txt = 'Hola!\n'
-   txt += 'Puedes comprobar los comandos disponibles usando: /help\n'
-   txt += tool.help_txt().replace('`','')
-   context.bot.send_message(chat_id=update.message.chat_id, text=txt)
+   txt += 'Para ver los comandos disponibles: /help\n'
+   txt += 'A día de hoy esta son las opciones disponibles:\n'
+   txt += tool.help_txt()
+   txt += '\n\nActualizaciones y noticias de este bot:\n'
+   txt += 'https://t.me/parapentebotWiki'
+   context.bot.send_message(chat_id=update.message.chat_id, text=txt,
+                            disable_web_page_preview=True)
    conn,c = admin.connect(RP.DBname)
    ad_lv = min([usr[-2] for usr in admin.get_user(conn,'chatid',chatID)])
    admin_level = min([admin_level,ad_lv])
