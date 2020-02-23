@@ -75,8 +75,9 @@ def keeper(update,context):
       if context.user_data['operation'] != 'rain': warn = False
       else: warn = True
       txt = hour_message(warn)
-      if context.user_data['operation'] != 'map': vid=False
-      else: vid=True
+      # if context.user_data['operation'] != 'map': vid=False
+      # else: vid=True
+      vid = True
       keyboard = hour_keyboard(context.user_data['main_callback'],offer_vid=vid)
    elif data.startswith('hour_'):
       context.user_data['hour'] = query['data'].replace('hour_','').split(':')[0]
