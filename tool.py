@@ -518,15 +518,15 @@ def hola(update, context):
                                 parse_mode=ParseMode.MARKDOWN)
 
 def help_txt():
-   txt =  f"```/sfcwind``` - Viento en superficie\n"
-   txt += f"```/bltopwind``` - Viento en el tope de la capa convectiva\n"
-   txt += f"```/blwind``` - Viento promedio de toda la capa convectiva\n"
-   txt += f"```/techo``` - Altura máxima de las térmicas (en días de térmica azul)\n"
-   txt += f"```/termicas``` - Potencia máxima de las térmicas\n"
-   txt += f"```/convergencias``` - Velocidad vertical máxima del viento (ignorando térmicas)\n"
-   txt += f"```/sondeo``` - Curva de estado\n"
-   txt += f"```/lluvia``` - Lluvia acumulada en 1 hora (sacada de Aemet)\n"
-   txt += f"```/map``` - Mapa personalizado, combinando el flujo de viento deseado con cualquier otra propiedad\n"
+   txt =  f"`/sfcwind` - Viento en superficie\n"
+   txt += f"`/bltopwind` - Viento en el tope de la capa convectiva\n"
+   txt += f"`/blwind` - Viento promedio de toda la capa convectiva\n"
+   txt += f"`/techo` - Altura máxima de las térmicas (en días de térmica azul)\n"
+   txt += f"`/termicas` - Potencia máxima de las térmicas\n"
+   txt += f"`/convergencias` - Velocidad vertical máxima del viento (ignorando térmicas)\n"
+   txt += f"`/sondeo` - Curva de estado\n"
+   txt += f"`/lluvia` - Lluvia acumulada en 1 hora (sacada de Aemet)\n"
+   txt += f"`/map` - Mapa personalizado, combinando el flujo de viento deseado con cualquier otra propiedad\n"
    return txt.strip()
 
 def myhelp(update, context):
