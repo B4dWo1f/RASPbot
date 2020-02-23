@@ -529,7 +529,7 @@ def help_txt():
    txt += f"`/sondeo` - Curva de estado\n"
    txt += f"`/lluvia` - Lluvia acumulada en 1 hora (sacada de Aemet)\n"
    txt += f"`/map` - Mapa personalizado, combinando el flujo de viento deseado con cualquier otra propiedad\n"
-   txt += f"`/feedback` - Manda un mensaje al creador del bot\n"
+   # txt += f"`/feedback` - Manda un mensaje al creador del bot\n"
    return txt.strip()
 
 def myhelp(update, context):
