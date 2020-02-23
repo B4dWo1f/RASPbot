@@ -2,14 +2,15 @@
 # -*- coding: UTF-8 -*-
 
 import common
+import credentials as CR
 RP = common.load(fname='config.ini')
+MB = CR.get_credentials(RP.token_file)
 
 # Telegram
 import telegram
 import telegram.ext
 from telegram import ChatAction, ParseMode
 # My Libraies
-import credentials as CR
 import aemet
 import admin
 from admin import EntryNotFound
@@ -503,8 +504,8 @@ def get_sc(date):
 #   M = context.bot.send_message(chatID, text=txt,
 #                                disable_web_page_preview=True,
 #                                parse_mode=ParseMode.MARKDOWN)
-#
-#
+
+
 ## Auxiliary ###################################################################
 def hola(update, context):
    """ echo-like service to check system status """
@@ -558,5 +559,20 @@ def log(update, context):
    except TypeError: chatID = update['callback_query']['message']['chat']['id']
    txt = '\n'.join(tail(RP.log,3))
    txt = f'```\n{txt}\n```'
+   M = context.bot.send_message(chatID, text=txt, 
+                                parse_mode=ParseMode.MARKDOWN)
+
+@CR.restricted(3)
+def feedback(update, context):
+   """ echo-like service to check system status """
+   args = ' '.join(context.args)
+   chat = update['message']['chat']
+   uname = chat['username']
+   fname = chat['first_name']
+   lname = chat['last_name']
+   txt = f'Message from {fname} {lname} ({uname}):\n'
+   txt += args
+   LG.info('Sending feedback!')
+   chatID = MB.me
    M = context.bot.send_message(chatID, text=txt, 
                                 parse_mode=ParseMode.MARKDOWN)
