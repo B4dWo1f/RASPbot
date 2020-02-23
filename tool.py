@@ -523,6 +523,7 @@ def help_txt():
    txt += f"`/blwind` - Viento promedio de toda la capa convectiva\n"
    txt += f"`/techo` - Altura máxima de las térmicas (en días de térmica azul)\n"
    txt += f"`/base_nube` - Altura de la base de los cúmulos\n"
+   txt += f"`/cubierta_nube` - Altura de la base de la cobertura de nubes (8/8)\n"
    txt += f"`/termicas` - Potencia máxima de las térmicas\n"
    txt += f"`/convergencias` - Velocidad vertical máxima del viento (ignorando térmicas)\n"
    txt += f"`/sondeo` - Curva de estado\n"
@@ -568,6 +569,16 @@ def log(update, context):
 def feedback(update, context):
    """ echo-like service to check system status """
    args = ' '.join(context.args)
+   if len(args) == 0:
+      try: chatID = update['message']
+      except TypeError: chatID = update['callback_query']['message']
+      chatID = chatID['chat']['id']
+      txt = 'Si quieres enviar algún comentario al autor tienes que incluirlo en el mensaje, por ejemplo:\n'
+      txt += '`/feedback He tenido un error al usar...`'
+      M = context.bot.send_message(chatID, text=txt, 
+                                   parse_mode=ParseMode.MARKDOWN)
+      return
+
    chat = update['message']['chat']
    uname = chat['username']
    fname = chat['first_name']

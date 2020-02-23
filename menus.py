@@ -249,6 +249,23 @@ def nube_menu(update,context):
    cover  = None
    menu(update,context,main_callback,operation,scalar,vector,cover)
 
+## Cloud cover
+def cubierta_selector(update,context):
+   main_callback = 'main_zblcl'
+   operation = 'map'
+   scalar = 'zblcl'
+   vector = 'sfcwind'
+   cover  = None
+   selector(update,context,main_callback,operation,scalar,vector,cover)
+
+def cubierta_menu(update,context):
+   main_callback = 'main_zblcl'
+   operation = 'map'
+   scalar = 'zblcl'
+   vector = 'sfcwind'
+   cover  = None
+   menu(update,context,main_callback,operation,scalar,vector,cover)
+
 ## Overcast
 def overcast_selector(update,context):
    main_callback = 'main_zblcl'

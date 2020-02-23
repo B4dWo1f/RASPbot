@@ -3,6 +3,7 @@ blwind - Viento promedio
 bltopwind - Viento en el techo de la capa convectiva
 techo - Altura máxima de la térmica (en días de térmica azul)
 base_nube - Altura de la base de los cúmulos
+cubierta_nube - Altura de la base de la cobertura de nubes (8/8)
 termicas - Potencia máxima de la térmica
 convergencias - Velocidad vertical máxima del viento (ignorando térmicas)
 sondeo - Ver curva de estado
