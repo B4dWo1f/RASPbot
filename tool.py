@@ -290,31 +290,61 @@ def build_image(date,scalar,vector,cover,dpi=65):
 def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
                                                    t_renew=6*60*60,
                                                    dis_notif=False):
-   dateUTC = date - get_utc_shift()
    places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
              'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
              'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
              'pegalajar': 12, 'otivar': 13}
-   fol = get_sc(date)
    index = places[place]
-   H = date.strftime('%H%M')
-   url_picture = 'http://raspuri.mooo.com/RASP/'
-   url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
-   LG.debug(url_picture)
-   f_tmp = '/tmp/' + rand_name() + '.png'
-   urlretrieve(url_picture, f_tmp)
-   T = aemet.get_temp(place,date)
-   fmt = '%d/%m/%Y-%H:%M'
-   txt = f"Sounding for _{place.capitalize()}_ at {date.strftime(fmt)}"
-   if T != None:
-      txt += f'\nExpected temperature: *{T}°C*'
-   ##tool.send_media(update,context, f_tmp, msg=txt, t=180,delete=True)
-   P =  PlotDescriptor(dateUTC,None,None,None,fname=f_tmp)
-   # bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
+   fol = get_sc(date)
+   tmp_folder = '/tmp'
+   f_tmp = '/tmp/' + rand_name()
+   if date.time() == dt.time(0,0,0):
+      f_out = f"{tmp_folder}/sounding_{place.replace(' ','_')}.mp4"
+      i = 0
+      for H in range(8,20):
+         # H = date.strftime('%H%M')
+         url_picture = 'http://raspuri.mooo.com/RASP/'
+         url_picture += f'{fol}/FCST/sounding{index}.curr.{H*100:04d}lst.w2.png'
+         A = urlretrieve(url_picture, f_tmp + f'_{i:04d}.png')
+         i += 1
+      # com = f'ffmpeg -i {f_tmp}_%02d.png output.gif'
+      f_gif = f'{f_tmp}.gif'
+      com =  f'convert -delay 150 -quality 20 -size 200 -loop 0'
+      com += f'  {f_tmp}_*.png {f_gif}'
+      com += f' > /dev/null 2> /dev/null'
+      os.system(com)
+      com = f'ffmpeg -i {f_gif} -movflags faststart -pix_fmt yuv420p'
+      com += f' -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" {f_out}'
+      com += f' > /dev/null 2> /dev/null'
+      os.system(com)
+      com = f'rm {f_tmp}_*.png {f_gif}'
+      os.system(com)
+      P =  PlotDescriptor(date,None,None,None,fname=f_out)
+      txt = f"Curva de estado para {place.capitalize()}"
+      txt += f" {date.date().strftime('%d/%m/%Y')}"
+   else:
+      dateUTC = date - get_utc_shift()
+      places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
+                'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
+                'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
+                'pegalajar': 12, 'otivar': 13}
+      index = places[place]
+      H = date.strftime('%H%M')
+      url_picture = 'http://raspuri.mooo.com/RASP/'
+      url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
+      LG.debug(url_picture)
+      urlretrieve(url_picture, f'{f_tmp}.png')
+      T = aemet.get_temp(place,date)
+      fmt = '%d/%m/%Y-%H:%M'
+      txt = f"Sounding for _{place.capitalize()}_ at {date.strftime(fmt)}"
+      if T != None:
+         txt += f'\nExpected temperature: *{T}°C*'
+      ##tool.send_media(update,context, f_tmp, msg=txt, t=180,delete=True)
+      P =  PlotDescriptor(dateUTC,None,None,None,fname=f'{f_tmp}.png')
+      # bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
    send_media(bot,chatID,job_queue, P, caption=txt,
                                          t_del=5*60, t_renew=6*60*60,
-                                         dis_notif=False,recycle=False)
-   os.system(f'rm {f_tmp}')
+                                         dis_notif=False,recycle=False,rm=True)
    return
 
 def send_rain(date,bot,chatID,job_queue, t_del=5*60,t_renew=6*60*60,
