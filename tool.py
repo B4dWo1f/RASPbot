@@ -16,6 +16,7 @@ import admin
 from admin import EntryNotFound
 # Standard
 import numpy as np
+import matplotlib as mpl
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -231,7 +232,7 @@ def build_image(date,scalar,vector,cover,dpi=65):
    rivers = f'{fol}/rivers.png'
    ccaa = f'{fol}/ccaa.png'
    takeoffs = f'{fol}/takeoffs.png'
-   bar = f'{root_fol}/{scalar}_light.png'
+   bar = f'{root_fol}/{scalar}.png'  #_light.png'
    if vector != 'none': vector = f'{fol}/{hora}_{vector}_vec.png'
    else: vector = None
    scalar = f'{fol}/{hora}_{scalar}.png'
@@ -259,6 +260,16 @@ def build_image(date,scalar,vector,cover,dpi=65):
    bar = mpimg.imread(bar)
    # Output Images
    fig = plt.figure()
+   COLOR = 'black'
+   COLOR = '#e0e0e0'
+   mpl.rcParams['text.color'] = COLOR
+   mpl.rcParams['axes.labelcolor'] = COLOR
+   mpl.rcParams['axes.facecolor'] = 'black'
+   mpl.rcParams['savefig.facecolor'] = 'black'
+   mpl.rcParams['xtick.color'] = COLOR
+   mpl.rcParams['ytick.color'] = COLOR
+   mpl.rcParams['axes.edgecolor'] = COLOR
+
    gs = gridspec.GridSpec(2, 1, height_ratios=[7.2,1])
    fig.subplots_adjust(wspace=0.,hspace=0.)
    ax1 = plt.subplot(gs[0,0])
