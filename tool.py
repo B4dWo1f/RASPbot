@@ -161,17 +161,23 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
       rm = True
       txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
-      send_media(bot,chatID,job_queue, P, caption=txt,
-                                          t_del=5*60, t_renew=6*60*60,
-                                          dis_notif=False,
-                                          recycle=False,rm=rm)
    elif isinstance(date,dt.date):
+      print('sending video')
       LG.debug(f'Preparing video for {date}, {scalar}, {vector}, {cover}')
       root_fol = RP.fol_plots    
       sc = get_sc(date)   # XXX should it be UTC????
+      print(root_fol)
+      print(sc)
       f_tmp = f'{root_fol}/{dom}/{sc}/{scalar}.mp4'
+      print(f_tmp)
       rm = False
+      txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y')}"
+      P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    else: LG.critical(f'Error in decide_image with time. Recived: {date}')
+   send_media(bot,chatID,job_queue, P, caption=txt,
+                                       t_del=5*60, t_renew=6*60*60,
+                                       dis_notif=False,
+                                       recycle=False,rm=rm)
 
 def build_image(date,scalar,vector,cover,dpi=65):
    """
