@@ -97,25 +97,25 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
       Action = ChatAction.UPLOAD_VIDEO
 
    conn,c = admin.connect(db_file)
-   now = dt.datetime.now()
-   skip = False
-   if recycle:
-      LG.debug(f'Checking DB {db_file}')
-      try:
-         # admin.show_all(conn)
-         ff = admin.get_file(conn, P.date_valid, P.vector, P.scalar, P.cover)
-         LG.debug('Entry found')
-         date = dt.datetime.strptime(ff[0][0],fmt)
-         f_id = ff[0][-1]
-         if (now-date).total_seconds() < t_renew:
-            LG.debug(f'Re-using {media_file}, previously sent')
-            media = f_id
-            skip = True
-         else:
-            LG.debug(f'{media_file} is too old. Delete entry and send again')
-            admin.remove_file(conn,f_id)
-      except EntryNotFound: pass
-   else: pass
+   #now = dt.datetime.now()
+   #skip = False
+   #if recycle:
+   #   LG.debug(f'Checking DB {db_file}')
+   #   try:
+   #      # admin.show_all(conn)
+   #      ff = admin.get_file(conn, P.date_valid, P.vector, P.scalar, P.cover)
+   #      LG.debug('Entry found')
+   #      date = dt.datetime.strptime(ff[0][0],fmt)
+   #      f_id = ff[0][-1]
+   #      if (now-date).total_seconds() < t_renew:
+   #         LG.debug(f'Re-using {media_file}, previously sent')
+   #         media = f_id
+   #         skip = True
+   #      else:
+   #         LG.debug(f'{media_file} is too old. Delete entry and send again')
+   #         admin.remove_file(conn,f_id)
+   #   except EntryNotFound: pass
+   #else: pass
    bot.send_chat_action(chat_id=chatID, action=Action)
    LG.debug(f'Sending {media}')
    M = send_func(chatID, media, caption=caption,
@@ -125,11 +125,11 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
    LG.info(f'File sent to chat {chatID}')
    try: file_id = M['photo'][-1]['file_id']
    except IndexError: file_id = M['video']['file_id']
-   if not skip:
-      admin.insert_file(conn, now.strftime(fmt), P.date_valid, P.vector,
-                              P.scalar, P.cover,file_id)
-      # admin.insert_file(conn, P.now.year,now.month,now.day,now.hour,now.minute,
-      #                   media_file, file_id)
+   #if not skip:
+   #   admin.insert_file(conn, now.strftime(fmt), P.date_valid, P.vector,
+   #                           P.scalar, P.cover,file_id)
+   #   # admin.insert_file(conn, P.now.year,now.month,now.day,now.hour,now.minute,
+   #   #                   media_file, file_id)
    if t_del != None:
       msgID = M.message_id
       job_queue.run_once(call_delete,t_del, context=(chatID, msgID))
@@ -282,6 +282,8 @@ def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
       H = date.strftime('%H%M')
       url_picture = 'http://raspuri.mooo.com/RASP/'
       url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
+      print('**')
+      print(url_picture)
       LG.debug(url_picture)
       urlretrieve(url_picture, f'{f_tmp}.png')
       T,url = aemet.get_temp(place,date)
@@ -289,8 +291,8 @@ def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
       txt = f"Sounding for _{place.capitalize()}_ at {date.strftime(fmt)}"
       if T != None:
          txt += f'\nExpected temperature: *{T}°C*\n'
-         txt += 'Temperatura sacada de aemet:\n'
-         txt += url.replace('_','\_')
+         # txt += 'Temperatura sacada de aemet:\n'
+         # txt += url.replace('_','\_')
          disable_web_page_preview = True
       else:
          disable_web_page_preview = None

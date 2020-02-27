@@ -104,6 +104,7 @@ def options_handler(update,context):
       date = date + dt.timedelta(days=int(context.user_data['day']))
       if context.user_data['hour'] == 'all':
          date = date.date()
+      else: date = date.replace(hour=int(context.user_data['hour']))
       if context.user_data['operation'] == 'sounding':
          place = context.user_data['place']
          tool.send_sounding(place,date,context.bot,chatID,job_queue)
