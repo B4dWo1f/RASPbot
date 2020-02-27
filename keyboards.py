@@ -154,7 +154,8 @@ def places_msg():
    return 'Elige zona:'
 
 def aemet_msg():
-   txt = 'Esta opción te permite conseguir los modelos numéricos de Aemet.\n'
+   txt = 'Esta opción te permite conseguir los *Modelos Numéricos* de Aemet.\n'
+   txt += '(Modelo Harmonie Arome por ccaa)\n'
    txt += 'En ningún caso garantizo su integridad'
    txt += ', y recomiendo visitar la fuente:\n'
    txt += 'https://www.aemet.es/es/eltiempo/prediccion/modelosnumericos/harmonie_arome'
