@@ -77,20 +77,35 @@ def parse_parte_aemet(url):
    val = S.find_all('div', class_='notas_tabla')[-1].text.strip()
    return AemetMontana(place, val, fcst)
 
+def get_place_horas(place):
+   url_base = 'https://www.aemet.es/es/eltiempo/prediccion/municipios/horas'
+   # for k,v in codes.items():
+   #    k = k.replace(' ','-')
+   #    k = k.replace('abantos','escorial-el')
+   #    k = k.replace('fuentemilanos','abades')
+   #    k = k.replace('candelario','barco-de-avila-el')
+   #    k = k.replace('pitolero','cabezabellosa')
+   #    print(f'{url_base}/{k}-id{v}')
+   urls = {'arcones':f'{url_base}/arcones-id40020',
+           'bustarviejo':f'{url_base}/bustarviejo-id28028',
+           'cebreros':f'{url_base}/cebreros-id05057',
+           'abantos':f'{url_base}/escorial-el-id28054',
+           'piedrahita':f'{url_base}/piedrahita-id05186',
+           'pedro bernardo':f'{url_base}/pedro-bernardo-id05182',
+           'lillo':f'{url_base}/lillo-id45084',
+           'fuentemilanos':f'{url_base}/abades-id40001',
+           'candelario':f'{url_base}/barco-de-avila-el-id05021',
+           'pitolero':f'{url_base}/cabezabellosa-id10034',
+           'pegalajar':f'{url_base}/pegalajar-id23067',
+           'otivar':f'{url_base}/otivar-id18148'}
+   return urls[place]
+
 def get_temp(place, date):
-   urls = {'arcones': 'http://www.aemet.es/xml/municipios_h/localidad_h_40020.xml',
-       'bustarviejo': 'http://www.aemet.es/xml/municipios_h/localidad_h_28028.xml',
-       'cebreros': 'http://www.aemet.es/xml/municipios_h/localidad_h_05057.xml',
-       'abantos': 'http://www.aemet.es/xml/municipios_h/localidad_h_28054.xml',
-       'piedrahita': 'http://www.aemet.es/xml/municipios_h/localidad_h_05186.xml',
-       'pedro bernardo': 'http://www.aemet.es/xml/municipios_h/localidad_h_05182.xml',
-       'lillo': 'http://www.aemet.es/xml/municipios_h/localidad_h_45084.xml',
-       'fuentemilanos': 'http://www.aemet.es/xml/municipios_h/localidad_h_40001.xml',
-       'candelario': 'http://www.aemet.es/xml/municipios_h/localidad_h_05021.xml',
-       'pitolero': 'http://www.aemet.es/xml/municipios_h/localidad_h_10034.xml',
-       'pegalajar': 'http://www.aemet.es/xml/municipios_h/localidad_h_23067.xml',
-       'otivar': 'http://www.aemet.es/xml/municipios_h/localidad_h_18148.xml'}
-   url = urls[place]
+   codes= {'arcones': '40020', 'bustarviejo': '28028', 'cebreros': '05057',
+           'abantos': '28054', 'piedrahita': '05186', 'pedro bernardo': '05182',
+           'lillo': '45084', 'fuentemilanos': '40001', 'candelario': '05021',
+           'pitolero': '10034', 'pegalajar': '23067', 'otivar': '18148'}
+   url = f'http://www.aemet.es/xml/municipios_h/localidad_h_{codes[place]}.xml'
 
    doc = make_request1(url)
    S = BeautifulSoup(doc,'lxml')
@@ -99,15 +114,18 @@ def get_temp(place, date):
          date_data = dia['fecha'] +' '+ T['periodo']+':00'
          date_data = dt.datetime.strptime(date_data, '%Y-%m-%d %H:%M')
          if date == date_data:
-            return float(T.text)
-   return None
+            return float(T.text), get_place_horas(place)
+   return None,None
 
 
-def rain(T):
+def modelo_numerico(prop,T):
    """
    Returns the url for the image from Aemet's rain:
       Predicción > Modelos numéricos > HARMONIE-AROME CC. AA.
    """
+   sufix = {'rain':'ww_asx', 'clouds':'ww_anx','temperature':'ww_atx',
+            'press':'ww_a1x', 'wind':'wh_avx',
+            'gust':'ww_arx', 'lightning':'ww_adx'}
    LG.info(f'Rain for {T}')
    url_base = 'https://www.aemet.es/imagenes_d/eltiempo/prediccion/modelos_num/'
    url_base += 'harmonie_arome_ccaa'
@@ -117,12 +135,12 @@ def rain(T):
       diff = T-ref
       diff = int(diff.total_seconds()/60/60) - 1
       url = f"{url_base}/{ref.strftime('%Y%m%d')}06+"
-      url += f"{diff:03d}_ww_asx0d60{diff:02d}.png"
+      url += f"{diff:03d}_{sufix[prop]}0d60{diff:02d}.png"
    else:
       ref = now.replace(hour=12,minute=0,second=0,microsecond=0)
       diff = T-ref
       diff = int(diff.total_seconds()/60/60) - 1
       url = f"{url_base}/{ref.strftime('%Y%m%d')}12+"
-      url += f"{diff:03d}_ww_asx0d20{diff:02d}.png"
+      url += f"{diff:03d}_{sufix[prop]}0d20{diff:02d}.png"
    LG.debug(url)
    return url

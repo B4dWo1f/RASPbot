@@ -10,10 +10,11 @@ RP = common.load(fname='config.ini')
 # Telegram
 from telegram import ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
+from telegram.ext import MessageHandler, Filters
 # My Libraies
 import credentials as CR
+import menus as M
 import channel
-import menus   
 import admin
 import tool
 # Standard
@@ -119,40 +120,55 @@ U = Updater(token, use_context=True)
 D = U.dispatcher
 J = U.job_queue
 
-D.add_handler(CommandHandler('map', menus.map_selector))
-D.add_handler(CallbackQueryHandler(menus.map_menu, pattern='main_map'))
-D.add_handler(CallbackQueryHandler(menus.keeper, pattern=r'vec_([\w*])'))
-D.add_handler(CallbackQueryHandler(menus.keeper, pattern=r'scal_([\w*])'))
-D.add_handler(CallbackQueryHandler(menus.keeper, pattern=r'over_([\w*])'))
-D.add_handler(CallbackQueryHandler(menus.keeper, pattern=r'day_([\w*])'))
-D.add_handler(CallbackQueryHandler(menus.keeper, pattern=r'hour_([\w*])'))
-D.add_handler(CallbackQueryHandler(menus.keeper, pattern=r'place_([\w*])'))
-D.add_handler(CallbackQueryHandler(menus.keeper, pattern='stop'))
+# Custom map
+D.add_handler(CommandHandler('map', M.map_selector))
+D.add_handler(CallbackQueryHandler(M.map_menu, pattern='main_map'))
 
-D.add_handler(CommandHandler('sondeo', menus.sounding_selector))
+# Conversation-like handlers
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'aemet_([\w*])'))
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'oper_([\w*])'))
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'place_([\w*])', pass_user_data=True))
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'vec_([\w*])'))
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'scal_([\w*])'))
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'over_([\w*])'))
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'day_([\w*])'))
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'hour_([\w*])'))
+D.add_handler(CallbackQueryHandler(M.options_handler, pattern='stop'))
+
+# Sondeo
+D.add_handler(CommandHandler('sondeo', M.sounding_selector))
+D.add_handler(CallbackQueryHandler(M.sounding_menu, pattern='main_sounding'))
 
 # Shortcuts
-D.add_handler(CommandHandler('sfcwind', menus.sfcwind_selector))
-D.add_handler(CallbackQueryHandler(menus.sfcwind_menu, pattern='main_sfcwind'))
-D.add_handler(CommandHandler('bltopwind', menus.bltopwind_selector))
-D.add_handler(CallbackQueryHandler(menus.bltopwind_menu, pattern='main_bltopwind'))
-D.add_handler(CommandHandler('blwind', menus.blwind_selector))
-D.add_handler(CallbackQueryHandler(menus.blwind_menu, pattern='main_blwind'))
-D.add_handler(CommandHandler('techo', menus.techo_selector))
-D.add_handler(CallbackQueryHandler(menus.techo_menu, pattern='main_hglider'))
-D.add_handler(CommandHandler('base_nube', menus.nube_selector))
-D.add_handler(CallbackQueryHandler(menus.nube_menu, pattern='main_zsfclcl'))
-D.add_handler(CommandHandler('cubierta_nube', menus.cubierta_selector))
-D.add_handler(CallbackQueryHandler(menus.cubierta_menu, pattern='main_zblcl'))
-D.add_handler(CommandHandler('nubes', menus.overcast_selector))
-D.add_handler(CallbackQueryHandler(menus.overcast_menu, pattern='main_zblcl'))
-D.add_handler(CommandHandler('termicas', menus.thermals_selector))
-D.add_handler(CallbackQueryHandler(menus.thermals_menu, pattern='main_thermals'))
-D.add_handler(CommandHandler('convergencias', menus.wblmaxmin_selector))
-D.add_handler(CallbackQueryHandler(menus.wblmaxmin_menu, pattern='main_wblmaxmin'))
+D.add_handler(CommandHandler('sfcwind', M.sfcwind_selector))
+D.add_handler(CallbackQueryHandler(M.sfcwind_menu, pattern='main_sfcwind'))
+D.add_handler(CommandHandler('bltopwind', M.bltopwind_selector))
+D.add_handler(CallbackQueryHandler(M.bltopwind_menu, pattern='main_bltopwind'))
+D.add_handler(CommandHandler('blwind', M.blwind_selector))
+D.add_handler(CallbackQueryHandler(M.blwind_menu, pattern='main_blwind'))
+D.add_handler(CommandHandler('techo', M.techo_selector))
+D.add_handler(CallbackQueryHandler(M.techo_menu, pattern='main_hglider'))
+D.add_handler(CommandHandler('base_nube', M.cumulos_selector))
+D.add_handler(CallbackQueryHandler(M.cumulos_menu, pattern='main_zsfclcl'))
+D.add_handler(CommandHandler('cubierta_nube', M.overcast_selector))
+D.add_handler(CallbackQueryHandler(M.overcast_menu, pattern='main_zblcl'))
+D.add_handler(CommandHandler('termicas', M.thermals_selector))
+D.add_handler(CallbackQueryHandler(M.thermals_menu, pattern='main_thermals'))
+D.add_handler(CommandHandler('convergencias', M.wblmaxmin_selector))
+D.add_handler(CallbackQueryHandler(M.wblmaxmin_menu, pattern='main_wblmaxmin'))
+D.add_handler(CommandHandler('lluvia', M.rain_selector))
+D.add_handler(CallbackQueryHandler(M.rain_menu, pattern='main_rain'))
+
+
+# ## TESTING meteograma
+# D.add_handler(CommandHandler('meteograma', M.meteogram_selector))
+# D.add_handler(CallbackQueryHandler(M.meteogram_menu, pattern='main_meteogram'))
+# D.add_handler(MessageHandler(Filters.location, M.localization_callback, pass_user_data=True))
+
+
 # Aemet
-D.add_handler(CommandHandler('lluvia', menus.rain_selector))
-D.add_handler(CallbackQueryHandler(menus.rain_menu, pattern='main_rain'))
+D.add_handler(CommandHandler('aemet', M.aemet_selector))
+D.add_handler(CallbackQueryHandler(M.aemet_menu, pattern='main_aemet'))
 
 # Admin
 D.add_handler(CommandHandler('start', start))

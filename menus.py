@@ -2,116 +2,117 @@
 # -*- coding: UTF-8 -*-
 
 import datetime as dt
-from telegram import InlineKeyboardButton as IlKB
-from telegram import InlineKeyboardMarkup
+import keyboards as kb
 import tool
-import os
-here = os.path.dirname(os.path.realpath(__file__))
 
-## Soundings ###################################################################
-def sounding_selector(update,context):
-   update.message.reply_text(places_message(),
-                             reply_markup=places_keyboard())
-   context.user_data['main_callback'] = 'main_sfcwind'
-   context.user_data['operation'] = 'sounding'
-   context.user_data['scalar'] = None
-   context.user_data['vector'] = None
-   context.user_data['cover']  = None
 
-def map_menu(update,context):
+def options_handler(update,context):
+   """
+   This function will ask and guide the user through any available options
+   I define a options cascades:
+   /aemet -> operation -> day -> hour(vid=False)
+   /sondeo -> place -> day -> hour(vid=True)
+   /map -> day -> hour(vid=False)
+   /[shortcuts] -> day -> hour(vid=True)
+   /meteogram -> place -> day
+
+   In order to fully define the requested operation we need to store in 
+   context.user_data the following information:
+   - main_callback: property to return to the beginning of the cascade
+   - operation: aemet, map, sounding, meteogram
+   - oper_class: type of operation [for aemet: cloud&rain, for map: custom,
+                                                                    shortcut...]
+   - place: None, [takeoffs], personal
+   - day: 0, 1, 2, 3 [today, tomorrow,...]
+   - hour: 8,9,...20 [available forecasts in Spanish Local time]
+   - scalar: sfcwind, hglider... [the available RASP properties]
+   - vector: sfcwind, blwind... [the available RASP wind options]
+   - cover: unavailable for now. Future implementation
+   """
    query = update.callback_query
-   context.bot.edit_message_text(chat_id=query.message.chat_id,
-                                 message_id=query.message.message_id,
-                                 text = places_message(),
-                                 reply_markup = places_keyboard())
-   context.user_data['operation'] = 'sounding'
-   context.user_data['scalar'] = None
-   context.user_data['vector'] = None
-   context.user_data['cover']  = None
-
-
-## Menu Options ################################################################
-def map_selector(update,context):
-   context.user_data['main_callback'] = 'main_map'
-   context.user_data['operation'] = 'map'
-   context.user_data['scalar'] = None
-   context.user_data['vector'] = None
-   context.user_data['cover']  = None
-   update.message.reply_text(vector_message(),
-              reply_markup=vector_keyboard(context.user_data['main_callback']))
-
-def map_menu(update,context):
-   query = update.callback_query
-   context.bot.edit_message_text(chat_id=query.message.chat_id,
-               message_id=query.message.message_id,
-               text=vector_message(),
-               reply_markup=vector_keyboard(context.user_data['main_callback']))
-   context.user_data['main_callback'] = 'main_map'
-   context.user_data['operation'] = 'map'
-   context.user_data['scalar'] = None
-   context.user_data['vector'] = None
-   context.user_data['cover']  = None
-
-def keeper(update,context):
-   query = update.callback_query
-   chatID = query.message.chat_id
-   messageID = query.message.message_id
    job_queue = context.job_queue
-   data = query['data']
-   if data.startswith('vec_'):
-      context.user_data['vector'] = query['data'].replace('vec_','')
-      txt = scalar_message()
-      keyboard = scalar_keyboard()
-   elif data.startswith('scal_'):
-      context.user_data['scalar'] = query['data'].replace('scal_','')
-      txt = day_message()
-      keyboard = day_keyboard()
-   elif data.startswith('place_'):
+   # Try-catch to allow the possibility of arriving here just by sending the
+   # location
+   try:
+      chatID = update['message']['chat']['id']
+      messageID = update['message']['message_id']
+   except TypeError:
+      chatID = update['callback_query']['message']['chat']['id']
+      messageID = update['callback_query']['message']['message_id']
+   # User passed data
+   try: data = query['data']
+   except TypeError: data = 'personal'  # when location sent
+   ### Options cascades ###
+   if data.startswith('place_'):
       context.user_data['place'] = query['data'].replace('place_','')
-      txt = day_message()
-      keyboard = day_keyboard()
+      txt = kb.day_msg()
+      keyboard = kb.day(context.user_data['main_callback'])
    elif data.startswith('day_'):
       context.user_data['day'] = query['data'].replace('day_','')
-      if context.user_data['operation'] != 'rain': warn = False
-      else: warn = True
-      txt = hour_message(warn)
-      # if context.user_data['operation'] != 'map': vid=False
-      # else: vid=True
-      vid = True
-      keyboard = hour_keyboard(context.user_data['main_callback'],offer_vid=vid)
+      if context.user_data['operation'] == 'meteogram':
+         txt = finalmessage()
+         keyboard = None
+      else:
+         if context.user_data['operation'] == 'aemet': warn = True
+         else: warn = False
+         txt = kb.hour_msg(warn)
+         if context.user_data['operation'] == 'shortcut': vid=True
+         elif context.user_data['operation'] == 'sounding': vid=True
+         elif context.user_data['operation'] == 'map': vid=False
+         elif context.user_data['operation'] == 'rain': vid = False  #XXX check
+         else: vid=False
+         keyboard = kb.hour(context.user_data['main_callback'],offer_vid=vid)
    elif data.startswith('hour_'):
       context.user_data['hour'] = query['data'].replace('hour_','').split(':')[0]
-      txt = finalmessage() + '\n'
+      txt = kb.finalmsg() + '\n'
       for k,v in context.user_data.items():
          if k in ['day','hour','scalar','vector']:
             txt += f'  {k}: {v}\n'
       keyboard = None
-   elif data == 'stop':
+   elif data.startswith('vec_'):
+      context.user_data['vector'] = query['data'].replace('vec_','')
+      txt = kb.scalar_msg()
+      keyboard = kb.scalar(context.user_data['main_callback'])
+   elif data.startswith('scal_'):
+      context.user_data['scalar'] = query['data'].replace('scal_','')
+      txt = kb.day_msg()
+      keyboard = kb.day(context.user_data['main_callback'])
+   elif data.startswith('aemet_'):
+      context.user_data['oper_class'] = query['data'].replace('aemet_','')
+      txt = kb.day_msg(warn=True)
+      keyboard = kb.day(context.user_data['main_callback'])
+   elif data == 'stop':  #XXX error
       txt = 'Cancelado!'
       keyboard = None
       context.user_data = {}   # Reset in case of cancel
+   ### Cascades ##
    if keyboard != None:
       # Continue recolecting data
       context.bot.edit_message_text(chat_id = chatID,
                                     message_id = messageID,
                                     text = txt, reply_markup = keyboard)
-   else:
-      # Get & send map/plot and finish conversation
+   else:  # keybard == None means we are done with the cascades
+          # and proceed with the petition
+      # End the conversation and send info
       context.bot.edit_message_text(chat_id = chatID,
                                     message_id = messageID,
                                     text = txt)
-      # Send picture or do something
+      # Fix day
+      # if context.user_data['hour'] == all, date should be reduced to dt.date
       date = dt.datetime.now()
+      date = date.replace(minute=0,second=0,microsecond=0)
       date = date + dt.timedelta(days=int(context.user_data['day']))
-      try:  # video has no defined hour
-         date = date.replace(hour=int(context.user_data['hour']))
-         date = date.replace(minute=0,second=0,microsecond=0)
-      except ValueError:
-         date = date.replace(hour=0,minute=0,second=0,microsecond=0)
+      if context.user_data['hour'] == 'all':
+         date = date.date()
       if context.user_data['operation'] == 'sounding':
          place = context.user_data['place']
          tool.send_sounding(place,date,context.bot,chatID,job_queue)
-      elif context.user_data['operation'] == 'map':
+   # elif context.user_data['operation'] == 'meteogram':
+   #    print('*************************')
+   #    print('yay')
+   #    tool.meteogram(date,context.user_data,context.bot,chatID,job_queue)
+   #    print('*************************')
+      elif context.user_data['operation'] in ['map','shortcut']:
          context.user_data['cover'] = None  #XXX future implementation
          # tool.build_image(date, context.user_data['scalar'],
          tool.decide_image(date, context.user_data['scalar'],
@@ -119,309 +120,345 @@ def keeper(update,context):
                                  context.user_data['cover'],
                                  context.bot,chatID,job_queue)
          context.user_data = {}   # reset after sending??
-      elif context.user_data['operation'] == 'rain':
-         tool.send_rain(date,context.bot,chatID,job_queue)
+      elif context.user_data['operation'] == 'aemet':
+         oper = context.user_data['oper_class']
+         tool.send_aemet(date,oper,context.bot,chatID,job_queue)
 
 
-
+## Handlers and Menus ###########################################################
 ## Selectors #################################
-def selector(update,context,main_callback,operation,scalar,vector,cover):
+def selector(update,context, main_callback=None,
+                             operation=None, oper_class=None,
+                             scalar=None, vector=None, cover=None,
+                             day=None, hour=None,
+                             msg=None, keyboard=None):
    context.user_data['main_callback'] = main_callback
    context.user_data['operation'] = operation
+   context.user_data['oper_class'] = operation
    context.user_data['scalar'] = scalar
    context.user_data['vector'] = vector
    context.user_data['cover']  = cover
-   update.message.reply_text(day_message(),
-                             reply_markup=day_keyboard(main_callback))
+   context.user_data['day']  = day
+   context.user_data['hour']  = hour
+   update.message.reply_text(msg,reply_markup=keyboard)
 
-def menu(update,context,main_callback,operation,scalar,vector,cover):
+def menu(update,context, main_callback=None,
+                         operation=None, oper_class=None,
+                         scalar=None, vector=None, cover=None,
+                         day=None, hour=None,
+                         msg=None, keyboard=None):
    query = update.callback_query
+   chatID = query.message.chat_id
+   msgID = query.message.message_id
    context.user_data['main_callback'] = main_callback
    context.user_data['operation'] = operation
+   context.user_data['oper_class'] = operation
    context.user_data['scalar'] = scalar
    context.user_data['vector'] = vector
    context.user_data['cover']  = cover
-   context.bot.edit_message_text(chat_id=query.message.chat_id,
-                                 message_id=query.message.message_id,
-                                 text=day_message(),
-                                 reply_markup=day_keyboard(main_callback))
+   context.user_data['day']  = day
+   context.user_data['hour']  = hour
+   context.bot.edit_message_text(chat_id=chatID, message_id=msgID,
+                                 text=msg, reply_markup=keyboard)
+
+# Soundings
+def sounding_selector(update,context):
+   main_callback = 'main_sounding'
+   operation = 'sounding'
+   msg = kb.places_msg()
+   keyboard = kb.places(main_callback, False,False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            msg=msg, keyboard=keyboard)
+
+def sounding_menu(update,context):
+   """
+   You should only arrive here from the "start over" option
+   """
+   main_callback = 'main_sounding'
+   operation = 'sounding'
+   msg = kb.places_msg()
+   keyboard = kb.places(main_callback, False,False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        msg=msg, keyboard=keyboard)
 
 
-## SFCwind
+# Custom map
+def map_selector(update,context):
+   main_callback = 'main_map'
+   operation = 'map'
+   msg = kb.vector_msg()
+   keyboard = kb.vector(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            msg=msg, keyboard=keyboard)
+
+def map_menu(update,context):
+   main_callback = 'main_map'
+   operation = 'map'
+   msg = kb.vector_msg()
+   keyboard = kb.vector(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        msg=msg, keyboard=keyboard)
+
+# SFCwind
 def sfcwind_selector(update,context):
    main_callback = 'main_sfcwind'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'sfcwind'
    vector = 'sfcwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
 
 def sfcwind_menu(update,context):
    main_callback = 'main_sfcwind'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'sfcwind'
    vector = 'sfcwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
 
-## BLwind
+# BLwind
 def blwind_selector(update,context):
    main_callback = 'main_blwind'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'blwind'
    vector = 'blwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
 
 def blwind_menu(update,context):
    main_callback = 'main_blwind'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'blwind'
    vector = 'blwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
 
-## BLTopwind
+# BLTopwind
 def bltopwind_selector(update,context):
    main_callback = 'main_bltopwind'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'bltopwind'
    vector = 'bltopwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
 
 def bltopwind_menu(update,context):
    main_callback = 'main_bltopwind'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'bltopwind'
    vector = 'bltopwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
 
-## Thermals
+# Thermals
 def thermals_selector(update,context):
    main_callback = 'main_thermals'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'wstar'
    vector = 'sfcwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
 
 def thermals_menu(update,context):
    main_callback = 'main_thermals'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'wstar'
    vector = 'sfcwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
 
-## Techo
+# Techo
 def techo_selector(update,context):
    main_callback = 'main_hglider'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'hglider'
    vector = 'sfcwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
 
 def techo_menu(update,context):
    main_callback = 'main_hglider'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'hglider'
    vector = 'sfcwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
+
+# Convergencias
+def wblmaxmin_selector(update,context):
+   main_callback = 'main_wblmaxmin'
+   operation = 'shortcut'
+   scalar = 'wblmaxmin'
+   vector = 'sfcwind'
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
+
+def wblmaxmin_menu(update,context):
+   main_callback = 'main_wblmaxmin'
+   operation = 'shortcut'
+   scalar = 'wblmaxmin'
+   vector = 'sfcwind'
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
 
 ## Cloud
-def nube_selector(update,context):
+def cumulos_selector(update,context):
    main_callback = 'main_zsfclcl'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'zsfclcl'
    vector = 'sfcwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
 
-def nube_menu(update,context):
+def cumulos_menu(update,context):
    main_callback = 'main_zsfclcl'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'zsfclcl'
    vector = 'sfcwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
 
-## Cloud cover
-def cubierta_selector(update,context):
-   main_callback = 'main_zblcl'
-   operation = 'map'
-   scalar = 'zblcl'
-   vector = 'sfcwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
-
-def cubierta_menu(update,context):
-   main_callback = 'main_zblcl'
-   operation = 'map'
-   scalar = 'zblcl'
-   vector = 'sfcwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
 
 ## Overcast
 def overcast_selector(update,context):
    main_callback = 'main_zblcl'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'zblcl'
    vector = 'sfcwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
 
 def overcast_menu(update,context):
    main_callback = 'main_zblcl'
-   operation = 'map'
+   operation = 'shortcut'
    scalar = 'zblcl'
    vector = 'sfcwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
 
-## Convergencias
-def wblmaxmin_selector(update,context):
-   main_callback = 'main_wblmaxmin'
-   operation = 'map'
-   scalar = 'wblmaxmin'
-   vector = 'sfcwind'
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
-
-def wblmaxmin_menu(update,context):
-   main_callback = 'main_wblmaxmin'
-   operation = 'map'
-   scalar = 'wblmaxmin'
-   vector = 'sfcwind'
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
-
-## Rain
+# Rain
 def rain_selector(update,context):
    main_callback = 'main_rain'
-   operation = 'rain'
-   scalar = None
-   vector = None
-   cover  = None
-   selector(update,context,main_callback,operation,scalar,vector,cover)
+   operation = 'shortcut'
+   scalar = 'rain1'
+   vector = 'sfcwind'
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            scalar=scalar, vector=vector,
+                            msg=msg, keyboard=keyboard)
 
 def rain_menu(update,context):
    main_callback = 'main_rain'
-   operation = 'map'
-   scalar = None
-   vector = None
-   cover  = None
-   menu(update,context,main_callback,operation,scalar,vector,cover)
+   operation = 'shortcut'
+   scalar = 'rain1'
+   vector = 'sfcwind'
+   msg = kb.day_msg()
+   keyboard = kb.day(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        scalar=scalar, vector=vector,
+                        msg=msg, keyboard=keyboard)
 
-############################ Keyboards #########################################
-def reset_options(main_callback):
-   dummy = [IlKB('Volver a empezar', callback_data=main_callback),
-            IlKB('Cancelar', callback_data='stop')]
-   return dummy
+# Aemet
+def aemet_selector(update,context):
+   main_callback = 'main_aemet'
+   operation = 'aemet'
+   msg = kb.aemet_msg()
+   keyboard = kb.aemet(main_callback, False)
+   selector(update,context, main_callback=main_callback, operation=operation,
+                            msg=msg, keyboard=keyboard)
 
-def vector_keyboard(main_callback='main_map'):
-   keyboard = [[IlKB('Superficie', callback_data='vec_sfcwind'),
-               IlKB('Promedio', callback_data='vec_blwind'),
-               IlKB('Altura', callback_data='vec_bltopwind')],
-               [IlKB('Ninguno', callback_data='vec_none')]]
-   keyboard.append( reset_options(main_callback) )
-   return InlineKeyboardMarkup(keyboard)
-
-def scalar_keyboard(main_callback='main_map'):
-   keyboard = [[IlKB('Viento superficie', callback_data='scal_sfcwind'),
-                IlKB('Promedio', callback_data='scal_blwind'),
-                IlKB('Altura', callback_data='scal_bltopwind')],
-               [IlKB('Techo (azul)', callback_data='scal_hglider'),
-                IlKB('Base nube', callback_data='scal_zsfclcl')],
-               [IlKB('CAPE', callback_data='scal_cape'),
-                IlKB('Térmica', callback_data='scal_wstar')],
-               [IlKB('Convergencias', callback_data='scal_wblmaxmin'),
-                IlKB('Cielo cubierto', callback_data='scal_zblcl')]]
-   keyboard.append( reset_options(main_callback) )
-   return InlineKeyboardMarkup(keyboard)
+def aemet_menu(update,context):
+   main_callback = 'main_aemet'
+   operation = 'aemet'
+   msg = kb.aemet_msg()
+   keyboard = kb.aemet(main_callback, False)
+   menu(update,context, main_callback=main_callback, operation=operation,
+                        msg=msg, keyboard=keyboard)
 
 
-def cover_keyboard(main_callback='main_map'):
-   keyboard = [[IlKB('Nubes', callback_data='over_blcloudpct'),
-                IlKB('Isobaras', callback_data='over_press')],
-               [IlKB('None', callback_data='over_none')]]
-   keyboard.append( reset_options('main_map') )
-   return InlineKeyboardMarkup(keyboard)
-
-def places_keyboard(main_callback='main_map'):
-   places = open(here+'/soundings.csv','r').read().strip().splitlines()
-   places = dict([l.split(',') for l in places])
-   places_keys = list(places.keys())
-   keyboard = []
-   for i in range(0,len(places_keys),2):
-      try:
-         P = places_keys[i]
-         P1 = places_keys[i+1]
-         keyboard.append([IlKB(P.capitalize(), callback_data='place_'+P),
-                          IlKB(P1.capitalize(), callback_data='place_'+P1)])
-      except IndexError:
-         P = places_keys[i]
-         keyboard.append([IlKB(P.capitalize(), callback_data=P), ])
-   keyboard.append( reset_options('main_map') )
-   return InlineKeyboardMarkup(keyboard)
-
-def day_keyboard(main_callback='main_map'):
-   keyboard = [[IlKB('Hoy', callback_data='day_0'),
-                IlKB('Mañana', callback_data='day_1')],
-               [IlKB('Pasado', callback_data='day_2'),
-                IlKB('Al otro', callback_data='day_3')]]
-   keyboard.append( reset_options(main_callback) )
-               # [IlKB('Volver a empezar', callback_data='main'),
-               #  IlKB('Cancelar', callback_data='stop')]]
-   return InlineKeyboardMarkup(keyboard)
-
-def hour_keyboard(main_callback='main_map',offer_vid=True):
-   #XXX local time
-   keyboard = [[IlKB("9:00",  callback_data='hour_9:00') ,
-                IlKB("10:00", callback_data='hour_10:00'),
-                IlKB("11:00", callback_data='hour_11:00'),
-                IlKB("12:00", callback_data='hour_12:00')],
-               [IlKB("13:00", callback_data='hour_13:00') ,
-                IlKB("14:00", callback_data='hour_14:00'),
-                IlKB("15:00", callback_data='hour_15:00'),
-                IlKB("16:00", callback_data='hour_16:00')],
-               [IlKB("17:00", callback_data='hour_17:00') ,
-                IlKB("18:00", callback_data='hour_18:00'),
-                IlKB("19:00", callback_data='hour_19:00'),
-                IlKB("20:00", callback_data='hour_20:00')]]
-   if offer_vid: 
-      keyboard.append( [IlKB('Todas (video)', callback_data='hour_all')] )
-   keyboard.append( reset_options(main_callback) )
-                  # [IlKB('Volver a empezar', callback_data='main'),
-                  #  IlKB('Cancelar', callback_data='stop')]]
-   return InlineKeyboardMarkup(keyboard)
 
 
-############################# Messages #########################################
-def vector_message():
-   return 'Flujo de viento:'
+# def localization_callback(update,context):
+#    loc = update['message']['location']
+#    lat = loc['latitude']
+#    lon = loc['longitude']
+#    context.user_data['place'] = (lon,lat)
+#    try: chatID = update['message']['chat']['id']
+#    except TypeError: chatID = update['callback_query']['message']['chat']['id']
+#    messageID = update.message.message_id
+#    txt = "Recibida tu ubicación. ¿Qué quieres hacer ahora?"
+#    keyboard = loc_keyboard((lon,lat))
+#    M = context.bot.send_message(chatID, text=txt,reply_markup=keyboard)
+#    # context.user_data['operation'] = 'meteogram'
 
-def scalar_message():
-   return 'Propiedad:'
 
-def cover_message():
-   return 'Cobertura:'
 
-def day_message():
-   return 'Elige día:'
 
-def hour_message(warn=False):
-   if warn:
-      return 'Elige hora:\n(puede que no todas las horas estén disponibles)'
-   else: return 'Elige hora:'
+# ## Meteogram
+# def meteogram_selector(update,context):
+#    main_callback = 'main_meteogram'
+#    context.user_data['main_callback'] = main_callback
+#    context.user_data['operation'] = 'meteogram'
+#    update.message.reply_text(places_message(),
+#                              reply_markup=places_keyboard(main_callback))
 
-def finalmessage():
-   return 'Enviando:'
+# def meteogram_menu(update,context):
+#    query = update.callback_query
+#    main_callback = 'main_meteogram'
+#    context.user_data['main_callback'] = main_callback
+#    context.user_data['operation'] = 'meteogram'
+#    context.bot.edit_message_text(chat_id=query.message.chat_id,
+#                                  message_id=query.message.message_id,
+#                                  text=places_message(),
+#                                  reply_markup=places_keyboard(main_callback))
 
-def places_message():
-   return 'Elige zona:'
 
