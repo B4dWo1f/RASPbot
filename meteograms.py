@@ -127,6 +127,7 @@ def plot_meteogram(lon,lat,fol,grids,terrain,dom,fname,N=0,title=''):
    # hwcrit = []
    wstar = []
    rain = []
+   blcloud = []
    dwcrit, dwcrit_err = [],[]
    zsfclcl,zsfclcl_err = [],[]
    zblcl,zblcl_err = [],[]
@@ -149,8 +150,10 @@ def plot_meteogram(lon,lat,fol,grids,terrain,dom,fname,N=0,title=''):
       dwcrit_err.append(abs(d-e)/2)
       r,_ = get_data(fol,h,'rain1',closest_index)
       rain.append(r)
+      b,_ = get_data(fol,h,'blcloudpct',closest_index)
+      blcloud.append(b)
       w,_ = get_data(fol,h,'wstar',closest_index)
-      wstar.append(s)
+      wstar.append(w/100)
       z,e = get_data_mask(fol,h,'zsfclcl',closest_index)
       zsfclcl.append(z)
       zsfclcl_err.append(abs(z-e)/2)
@@ -214,20 +217,32 @@ def plot_meteogram(lon,lat,fol,grids,terrain,dom,fname,N=0,title=''):
    error_kw = {'width':2,'capsize':4.0, 'alpha':0.3}
    ax.bar(H,hbl,yerr=hbl_err,width=0.9,color=thermal_color,zorder=0,
                     error_kw=error_kw)
-   col1 = np.array([255,191,128])/255
-   col2 = np.array([204,41,0])/255
+   col1 = np.array([255,194,0])/255
+   col2 = np.array([193,38,0])/255
    wstar = np.array(wstar)
-   wstar_norm = (wstar-np.min(wstar))/(np.max(wstar)-np.min(wstar))
-   w_colors = [col2*c/col1 for c in wstar_norm]
-   ax.bar(H,dwcrit,color=thermal_color1,yerr=dwcrit_err,width=0.7,zorder=1,
+   # wstar_norm = (wstar-np.min(wstar))/(np.max(wstar)-np.min(wstar))
+   x0=1
+   wstar_norm = (np.tanh(wstar/2-x0)+1)/2 -(np.tanh(-x0)+1)/2
+   w_colors = [c*col2 + (1-c)*col1 for c in wstar_norm]
+   ax.bar(H,dwcrit,color=w_colors,yerr=dwcrit_err,width=0.7,zorder=1,
                    error_kw=error_kw)
-   ax.bar(H,90,bottom=zsfclcl,width=1.05,color='gray',zorder=1,
+   cloud = np.min([zsfclcl,zblcl],axis=0)
+   cloud_top = hbl-cloud
+   cloud_top = np.where(cloud > 10, cloud_top,0)
+   cloud_top = np.where(cloud>90,cloud_top,90)  # min width
+   blcloud = np.array(blcloud)/100
+   cstart = np.array([1,1,1])
+   cend = np.array([0.3,0.3,0.3])
+   blcolors = [x*cend + (1-x)*cstart for x in blcloud]
+   ax.bar(H,cloud_top,bottom=cloud,width=1.05,color=blcolors,zorder=1,
                     error_kw=error_kw)
-   ax.bar(H,90,bottom=zblcl,width=1.05,color='k',zorder=1,
-                    error_kw=error_kw)
+   # ax.bar(H,90,bottom=zsfclcl,width=1.05,color='gray',zorder=1,
+   #                  error_kw=error_kw)
+   # ax.bar(H,90,bottom=zblcl,width=1.05,color='k',zorder=1,
+   #                  error_kw=error_kw)
    rain = np.array(rain)
-   rain = np.where(rain>=0.75,1,0)
-   ax.bar(H,ground+90*rain,width=1.05,color='C0',zorder=10)
+   rain = (np.tanh(rain-1)+1)/2 -(np.tanh(-1)+1)/2
+   ax.bar(H,ground+150*rain,width=1.05,color='C0',zorder=10)
    ax.add_patch(rect)
    ax.set_ylim([ground-250,max([2500,1.2*max(hbl)])])
    ax.set_xlabel('Time')
