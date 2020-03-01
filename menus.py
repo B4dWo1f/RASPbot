@@ -46,7 +46,8 @@ def options_handler(update,context):
    if data.startswith('place_'):
       place = data.replace('place_','')
       if place == 'personal': # ask for location
-         txt = 'Send me your location'
+         txt = 'De acuerdo! Para continuar mandame tu ubicación\n'
+         txt += '(o la ubicación del punto que te interese)'
          # M = context.bot.send_message(chatID, text=txt)
          context.bot.edit_message_text(chat_id = chatID,
                                     message_id = messageID,

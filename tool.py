@@ -152,10 +152,10 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    # Order is important!! datetime objects are date objects as well
    if isinstance(date,dt.datetime):
       LG.debug(f'Preparing picture for {date}, {scalar}, {vector}, {cover}')
-      txt = 'I\'m composing the map for you, it\'ll only take a few seconds'
+      txt = 'Preparando el mapa, dame un segundo...'
       M = bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
       f_tmp = build_image(date,scalar,vector,cover,dpi=dpi)
-      txt = 'All done, sending it now'
+      txt = '...acabé. Empiezo el envío (puede tardar unos segundos en llegar)'
       bot.edit_message_text(chat_id=chatID, message_id=M['message_id'],
                             text=txt, parse_mode=ParseMode.MARKDOWN)
       rm = True
