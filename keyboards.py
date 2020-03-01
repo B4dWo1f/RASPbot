@@ -8,7 +8,7 @@ from telegram import InlineKeyboardMarkup #, ReplyKeyboardMarkup
 here = os.path.dirname(os.path.realpath(__file__))
 
 ############################ Keyboards #########################################
-def reset_options(main_callback,restart=True):
+def reset_options(main_callback=None,restart=True):
    dummy = []
    if restart:
       dummy.append( IlKB('Volver a empezar', callback_data=main_callback) )
@@ -80,9 +80,9 @@ def places(main_callback,restart=False,personal=True):
    keyboard.append( reset_options(main_callback,restart) )
    return InlineKeyboardMarkup(keyboard)
 
-def localization(p,main_callback):
-   keyboard = [[IlKB('Meteograma', callback_data=f'oper_meteogram')]]
-   keyboard.append( reset_options(main_callback) )
+def localization(restart=False):
+   keyboard = [[IlKB('Meteograma', callback_data=f'set_oper_meteogram')]]
+   keyboard.append( reset_options(restart=restart) )
    return InlineKeyboardMarkup(keyboard)
 
 def day(main_callback,restart=True):
@@ -159,4 +159,8 @@ def aemet_msg():
    txt += 'En ningún caso garantizo su integridad'
    txt += ', y recomiendo visitar la fuente:\n'
    txt += 'https://www.aemet.es/es/eltiempo/prediccion/modelosnumericos/harmonie_arome'
+   return txt
+
+def meteogram_msg():
+   txt = 'Elige ubicación:'
    return txt

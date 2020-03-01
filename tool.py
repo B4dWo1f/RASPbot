@@ -162,14 +162,10 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
       txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    elif isinstance(date,dt.date):
-      print('sending video')
       LG.debug(f'Preparing video for {date}, {scalar}, {vector}, {cover}')
       root_fol = RP.fol_plots    
       sc = get_sc(date)   # XXX should it be UTC????
-      print(root_fol)
-      print(sc)
       f_tmp = f'{root_fol}/{dom}/{sc}/{scalar}.mp4'
-      print(f_tmp)
       rm = False
       txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y')}"
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
@@ -288,8 +284,6 @@ def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
       H = date.strftime('%H%M')
       url_picture = 'http://raspuri.mooo.com/RASP/'
       url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
-      print('**')
-      print(url_picture)
       LG.debug(url_picture)
       urlretrieve(url_picture, f'{f_tmp}.png')
       T,url = aemet.get_temp(place,date)
@@ -381,8 +375,8 @@ def get_sc(date):
      ...
    date should be a dt.date
    """
-   now = dt.datetime.now().date()
    day = dt.timedelta(days=1)
+   now = dt.datetime.now().date()
    if   date == now: return 'SC2'
    elif date == now+day: return 'SC2+1'
    elif date == now+2*day: return 'SC4+2'
@@ -475,17 +469,39 @@ def feedback(update, context):
                                 parse_mode=ParseMode.MARKDOWN)
 
 
-# import plots
-# def meteogram(date,context,bot,chatID,job_queue,dpi=65):
-#    print('='*80)
-#    print('='*80)
-#    print(date)
-#    print(context)
-#    plots.meteogram(*context['place'])
-#    media = open('test.png','rb')
-#    bot.send_photo(chatID, media, caption='FLIPA',
-#                                 timeout=300, disable_notification=False,
-#                                 parse_mode=ParseMode.MARKDOWN)
-#    print(chatID)
-#    print('='*80)
-#    print('='*80)
+import meteograms
+def meteogram(date,info,bot,chatID,job_queue,dpi=65):
+   places = {'somosierra':(-3.615281,41.149850),
+             'arcones':(-3.707029,41.078854),
+             'nevero':(-3.847430,40.982414),
+             'bustarviejo':(-3.68661,40.87575),
+             'torrecaballeros':(-4.000919,40.937505),
+             'abantos':(-4.154882,40.611774),
+             'cebreros':(-4.51,40.45),
+             'pedro bernardo':(-4.91,40.25 ),
+             'piedrahita':(-5.3015,40.4221),
+             'lastra del cano':(-5.444265,40.346122),
+             'fuentemilanos':(-4.239,40.889),
+             'candelario':(-5.744,40.365)}
+   try:
+      P0 = places[info['place']]
+      place_name = info['place'].capitalize()
+   except KeyError:
+      P0 = info['place']
+      place_name = ''
+   data_fol = RP.fol_data
+   grids = RP.fol_grids
+   terrain = RP.fol_grids.replace('grids','terrain')
+   f_tmp = '/tmp/' + rand_name() + '.png'
+   stat = meteograms.get_meteogram(P0,date,data_fol,grids,terrain,f_tmp,
+                                                           place_name=place_name)
+   if stat:
+      P =  PlotDescriptor(date,None,None,None,fname=f_tmp)
+      txt = f'Meteograma en {place_name} para {date}'
+      send_media(bot,chatID,job_queue, P, caption=txt,
+                                          t_del=5*60, t_renew=6*60*60,
+                                          dis_notif=False,
+                                          recycle=False,rm=True)
+   else:
+      txt = 'Creo que me has pasado un punto fuera de nuestro domino de cálculo. No hay nada que pueda hacer, lo siento.'
+      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)

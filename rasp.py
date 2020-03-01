@@ -43,15 +43,16 @@ def start(update, context):
    else: admin_level = 3
    txt = 'Hola!\n'
    txt += 'Para ver los comandos disponibles: /help\n'
-   txt += 'A día de hoy esta son las opciones disponibles:\n'
-   txt += tool.help_txt()
-   txt += '\n\nActualizaciones y noticias de este bot:\n'
+   # txt += tool.help_txt()
+   txt += '\n\nActualizaciones y noticias de este bot en el canal:\n'
    txt += 'https://t.me/parapentebotWiki'
    context.bot.send_message(chat_id=update.message.chat_id, text=txt,
                             disable_web_page_preview=True)
    conn,c = admin.connect(RP.DBname)
-   ad_lv = min([usr[-2] for usr in admin.get_user(conn,'chatid',chatID)])
-   admin_level = min([admin_level,ad_lv])
+   try:
+      ad_lv = min([usr[-2] for usr in admin.get_user(conn,'chatid',chatID)])
+      admin_level = min([admin_level,ad_lv])
+   except admin.EntryNotFound: admin_level = 4
    admin.insert_user(conn,chatID,uname,fname,lname,admin_level,0)
 
 # Stop
@@ -122,48 +123,44 @@ J = U.job_queue
 
 # Custom map
 D.add_handler(CommandHandler('map', M.map_selector))
-D.add_handler(CallbackQueryHandler(M.map_menu, pattern='main_map'))
+D.add_handler(CallbackQueryHandler(M.map_menu, pattern='map'))
 
 # Conversation-like handlers
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'aemet_([\w*])'))
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'oper_([\w*])'))
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'place_([\w*])', pass_user_data=True))
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'vec_([\w*])'))
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'scal_([\w*])'))
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'over_([\w*])'))
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'day_([\w*])'))
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'hour_([\w*])'))
-D.add_handler(CallbackQueryHandler(M.options_handler, pattern='stop'))
+patterns = ['aemet_([\w*])', 'oper_([\w*])', 'set_oper_([\w*])',
+            'place_([\w*])', 'vec_([\w*])',  'scal_([\w*])',
+            'over_([\w*])',  'day_([\w*])',  'hour_([\w*])',
+            'stop']
+for patt in patterns:
+   D.add_handler(CallbackQueryHandler(M.options_handler, pattern=patt))
+
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'aemet_([\w*])'))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'oper_([\w*])'))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'set_oper_([\w*])'))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'place_([\w*])', pass_user_data=True))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'vec_([\w*])'))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'scal_([\w*])'))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'over_([\w*])'))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'day_([\w*])'))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern=r'hour_([\w*])'))
+# D.add_handler(CallbackQueryHandler(M.options_handler, pattern='stop'))
+
+
+# Shortcuts
+shortcuts = ['sfcwind', 'bltopwind', 'blwind', 'techo', 'base_nube',
+             'cubierta_nube', 'termicas', 'convergencias', 'lluvia']
+for prop in shortcuts:
+   D.add_handler(CommandHandler(prop, M.shortcut_selector))
+   D.add_handler(CallbackQueryHandler(M.shortcut_menu, pattern=prop))
 
 # Sondeo
 D.add_handler(CommandHandler('sondeo', M.sounding_selector))
 D.add_handler(CallbackQueryHandler(M.sounding_menu, pattern='main_sounding'))
 
-# Shortcuts
-D.add_handler(CommandHandler('sfcwind', M.sfcwind_selector))
-D.add_handler(CallbackQueryHandler(M.sfcwind_menu, pattern='main_sfcwind'))
-D.add_handler(CommandHandler('bltopwind', M.bltopwind_selector))
-D.add_handler(CallbackQueryHandler(M.bltopwind_menu, pattern='main_bltopwind'))
-D.add_handler(CommandHandler('blwind', M.blwind_selector))
-D.add_handler(CallbackQueryHandler(M.blwind_menu, pattern='main_blwind'))
-D.add_handler(CommandHandler('techo', M.techo_selector))
-D.add_handler(CallbackQueryHandler(M.techo_menu, pattern='main_hglider'))
-D.add_handler(CommandHandler('base_nube', M.cumulos_selector))
-D.add_handler(CallbackQueryHandler(M.cumulos_menu, pattern='main_zsfclcl'))
-D.add_handler(CommandHandler('cubierta_nube', M.overcast_selector))
-D.add_handler(CallbackQueryHandler(M.overcast_menu, pattern='main_zblcl'))
-D.add_handler(CommandHandler('termicas', M.thermals_selector))
-D.add_handler(CallbackQueryHandler(M.thermals_menu, pattern='main_thermals'))
-D.add_handler(CommandHandler('convergencias', M.wblmaxmin_selector))
-D.add_handler(CallbackQueryHandler(M.wblmaxmin_menu, pattern='main_wblmaxmin'))
-D.add_handler(CommandHandler('lluvia', M.rain_selector))
-D.add_handler(CallbackQueryHandler(M.rain_menu, pattern='main_rain'))
 
-
-# ## TESTING meteograma
-# D.add_handler(CommandHandler('meteograma', M.meteogram_selector))
-# D.add_handler(CallbackQueryHandler(M.meteogram_menu, pattern='main_meteogram'))
-# D.add_handler(MessageHandler(Filters.location, M.localization_callback, pass_user_data=True))
+## TESTING meteograma
+D.add_handler(CommandHandler('meteograma', M.meteogram_selector))
+D.add_handler(CallbackQueryHandler(M.meteogram_menu, pattern='main_meteogram'))
+D.add_handler(MessageHandler(Filters.location, M.options_handler))
 
 
 # Aemet

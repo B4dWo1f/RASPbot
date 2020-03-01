@@ -9,7 +9,7 @@ here = os.path.dirname(os.path.realpath(__file__))
 
 class RunParams(object):
    def __init__(self,t_del,t_renew,token_file,log,log_lv,DBname,fol_plots,
-                                                                fol_grids):
+                                                         fol_grids, fol_data):
       self.t_del = t_del
       self.t_renew = t_renew
       self.log = log
@@ -18,6 +18,7 @@ class RunParams(object):
       self.DBname = DBname
       self.fol_plots = fol_plots
       self.fol_grids = fol_grids
+      self.fol_data = fol_data
    def __str__(self):
       txt =  f'Plots stored in: {self.fol_plots}\n'
       txt +=  f'Grids stored in: {self.fol_grids}\n'
@@ -40,6 +41,7 @@ def load(fname='config.ini'):
    if token_file[0] != '/': token_file = here + '/' + token_file
    fol_plots = expanduser(config['bot']['folder_plots'])
    fol_grids = expanduser(config['bot']['folder_grids'])
+   fol_data = expanduser(config['bot']['folder_data'])
    
    log = config['log']['log_file']
    levels = {'debug':10, 'info':20, 'warning':30, 'error':40, 'critical':50}
@@ -51,5 +53,5 @@ def load(fname='config.ini'):
    DBname = config['database']['db_name']
 
    RP = RunParams(t_del,t_renew, token_file,log,log_lv,DBname,
-                  fol_plots,fol_grids)
+                  fol_plots,fol_grids,fol_data)
    return RP
