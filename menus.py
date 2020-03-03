@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+from common import command_callback, prop_names
 import datetime as dt
 import keyboards as kb
 import tool
@@ -46,7 +47,7 @@ def options_handler(update,context):
    if data.startswith('place_'):
       place = data.replace('place_','')
       if place == 'personal': # ask for location
-         txt = 'De acuerdo! Para continuar mandame tu ubicación\n'
+         txt = 'De acuerdo! **Para continuar mándame tu ubicación**\n'
          txt += '(o la ubicación del punto que te interese)'
          # M = context.bot.send_message(chatID, text=txt)
          context.bot.edit_message_text(chat_id = chatID,
@@ -209,10 +210,10 @@ def menu(update,context, main_callback=None,
 
 def shortcut_selector(update,context):
    prop = update['message']['text'].replace('/','')
-   main_callback = prop
+   main_callback = command_callback[prop]
    operation = 'shortcut'
-   scalar = prop
-   if 'wind' in prop: vector = prop
+   scalar = command_callback[prop]
+   if 'wind' in prop: vector = command_callback[prop]
    else: vector = 'sfcwind'
    msg = kb.day_msg()
    keyboard = kb.day(main_callback, False)

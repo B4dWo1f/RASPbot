@@ -6,6 +6,26 @@ from os.path import expanduser
 import os
 here = os.path.dirname(os.path.realpath(__file__))
 
+fname = 'rasp_var.dict'
+var_dict = open(fname,'r').read().strip()
+keys,values = [],[]
+for l in var_dict.splitlines():
+   k,v = l.split(',')
+   keys.append(k)
+   values.append(v)
+prop_names = dict(zip(keys,values))
+
+
+command_callback = {'sfcwind':'sfcwind', 'blwind':'blwind',
+                    'bltopwind':'bltopwind',
+                    'techo':'hglider',
+                    'cape':'cape',
+                    'termicas':'wstar',
+                    'convergencias':'wblmaxmin',
+                    'base_nube':'zsfclcl',
+                    'cubierta_nube':'zblcl',
+                    'lluvia':'rain1'}
+
 
 class RunParams(object):
    def __init__(self,t_del,t_renew,token_file,log,log_lv,DBname,fol_plots,

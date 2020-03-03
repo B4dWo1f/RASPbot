@@ -5,6 +5,7 @@ import common
 import credentials as CR
 RP = common.load(fname='config.ini')
 MB = CR.get_credentials(RP.token_file)
+from common import command_callback, prop_names
 
 # Telegram
 import telegram
@@ -35,15 +36,6 @@ LG = logging.getLogger(__name__)
 
 f_id_files = here+'/files.db'
 fmt = '%d/%m/%Y-%H:%M'
-
-fname = 'rasp_var.dict'
-var_dict = open(fname,'r').read().strip()
-keys,values = [],[]
-for l in var_dict.splitlines():
-   k,v = l.split(',')
-   keys.append(k)
-   values.append(v)
-prop_names = dict(zip(keys,values))
 
 
 # default_args = t_del=5*60, t_renew=6*60*60, dis_notif=False
