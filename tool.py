@@ -18,6 +18,7 @@ from admin import EntryNotFound
 # Standard
 import numpy as np
 import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
