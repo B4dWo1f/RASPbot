@@ -6,10 +6,12 @@ base_nube - Altura de la base de los cúmulos
 cubierta_nube - Altura de la base de la cobertura de nubes (8/8)
 termicas - Potencia máxima de la térmica
 convergencias - Velocidad vertical máxima del viento (ignorando térmicas)
+lluvia - Precipitación acumulada en 1h calculada por el RASP (comparar con Aemet)
 sondeo - Ver curva de estado
-map - Mapa a medida eligiendo flujo de viento y la propiedad deseada
-lluvia - Lluvia acumulada en 1 hora (Aemet)
-feedback - Manda un mensaje al creador del bot
+map - Mapa a medida eligiendo viento a distintas alturas y la propiedad deseada
+meteograma - Meteograma para cualquier punto del dominio peninsular (alpha!)
+aemet - Consigue los modelos numéricos de Aemet (para la comunidad de Madrid)
+feedback - Mandarme un mensaje directo [por favor no spammear!]
 help - Muestra las opciones disponibles
 start - Registrarse como usuario del bot
 stop - Detener el bot

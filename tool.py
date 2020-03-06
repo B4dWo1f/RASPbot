@@ -5,6 +5,7 @@ import common
 import credentials as CR
 RP = common.load(fname='config.ini')
 MB = CR.get_credentials(RP.token_file)
+from common import command_callback, prop_names
 
 # Telegram
 import telegram
@@ -17,6 +18,7 @@ from admin import EntryNotFound
 # Standard
 import numpy as np
 import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -36,20 +38,15 @@ LG = logging.getLogger(__name__)
 f_id_files = here+'/files.db'
 fmt = '%d/%m/%Y-%H:%M'
 
-fname = 'rasp_var.dict'
-var_dict = open(fname,'r').read().strip()
-keys,values = [],[]
-for l in var_dict.splitlines():
-   k,v = l.split(',')
-   keys.append(k)
-   values.append(v)
-prop_names = dict(zip(keys,values))
+
+# default_args = t_del=5*60, t_renew=6*60*60, dis_notif=False
+
 
 class PlotDescriptor(object):
    def __init__(self,date_valid,vector,scalar,cover,fname=''):
       """ date_valid has to be a datetime object """
       fmt = '%d/%m/%Y-%H:00'
-      self.date_valid = date_valid.strftime(fmt)
+      self.date_valid = date_valid.strftime(fmt)   # XXX Local time
       self.vector = str(vector)
       self.scalar = str(scalar)
       self.cover  = str(cover)
@@ -74,7 +71,8 @@ def call_delete(context: telegram.ext.CallbackContext):
 def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
                                                 dis_notif=False, recycle=False,
                                                 db_file='RaspBot.db',
-                                                rm=False):
+                                                rm=False,
+                                                disable_web_page_preview=None):
    """
    media_file: file to be sent
    t_renew: if file was registered in the database longer than t_renew seconds,
@@ -92,25 +90,25 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
       Action = ChatAction.UPLOAD_VIDEO
 
    conn,c = admin.connect(db_file)
-   now = dt.datetime.now()
-   skip = False
-   if recycle:
-      LG.debug(f'Checking DB {db_file}')
-      try:
-         # admin.show_all(conn)
-         ff = admin.get_file(conn, P.date_valid, P.vector, P.scalar, P.cover)
-         LG.debug('Entry found')
-         date = dt.datetime.strptime(ff[0][0],fmt)
-         f_id = ff[0][-1]
-         if (now-date).total_seconds() < t_renew:
-            LG.debug(f'Re-using {media_file}, previously sent')
-            media = f_id
-            skip = True
-         else:
-            LG.debug(f'{media_file} is too old. Delete entry and send again')
-            admin.remove_file(conn,f_id)
-      except EntryNotFound: pass
-   else: pass
+   #now = dt.datetime.now()
+   #skip = False
+   #if recycle:
+   #   LG.debug(f'Checking DB {db_file}')
+   #   try:
+   #      # admin.show_all(conn)
+   #      ff = admin.get_file(conn, P.date_valid, P.vector, P.scalar, P.cover)
+   #      LG.debug('Entry found')
+   #      date = dt.datetime.strptime(ff[0][0],fmt)
+   #      f_id = ff[0][-1]
+   #      if (now-date).total_seconds() < t_renew:
+   #         LG.debug(f'Re-using {media_file}, previously sent')
+   #         media = f_id
+   #         skip = True
+   #      else:
+   #         LG.debug(f'{media_file} is too old. Delete entry and send again')
+   #         admin.remove_file(conn,f_id)
+   #   except EntryNotFound: pass
+   #else: pass
    bot.send_chat_action(chat_id=chatID, action=Action)
    LG.debug(f'Sending {media}')
    M = send_func(chatID, media, caption=caption,
@@ -120,11 +118,11 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
    LG.info(f'File sent to chat {chatID}')
    try: file_id = M['photo'][-1]['file_id']
    except IndexError: file_id = M['video']['file_id']
-   if not skip:
-      admin.insert_file(conn, now.strftime(fmt), P.date_valid, P.vector,
-                              P.scalar, P.cover,file_id)
-      # admin.insert_file(conn, P.now.year,now.month,now.day,now.hour,now.minute,
-      #                   media_file, file_id)
+   #if not skip:
+   #   admin.insert_file(conn, now.strftime(fmt), P.date_valid, P.vector,
+   #                           P.scalar, P.cover,file_id)
+   #   # admin.insert_file(conn, P.now.year,now.month,now.day,now.hour,now.minute,
+   #   #                   media_file, file_id)
    if t_del != None:
       msgID = M.message_id
       job_queue.run_once(call_delete,t_del, context=(chatID, msgID))
@@ -137,73 +135,34 @@ def rand_name(pwdSize=8):
    chars = string.ascii_letters + string.digits
    return ''.join((choice(chars)) for x in range(pwdSize))
 
-#def parse_time(time):
-#   try:
-#      pattern = r'(\S+):(\S+)'
-#      match = re.search(pattern, time)
-#      h,m = (match.groups())
-#      m = 0
-#   except AttributeError:
-#      h = time
-#      m = 0
-#   return int(h), int(m)
-#
-#
-#def parser_date(line):
-#   numday = {0: 'lunes', 1: 'martes', 2: 'miércoles', 3: 'jueves',
-#             4: 'viernes', 5: 'sábado', 6: 'domingo'}
-#   daynum = {'lunes':0, 'martes':1, 'miercoles':2, 'miércoles':2, 'jueves':3,
-#             'viernes':4, 'sabado':5, 'sábado':5, 'domingo':6}
-#   shifts = {'hoy':0, 'mañana':1, 'pasado':2, 'pasado mañana':2, 'al otro':3}
-#
-#   notime = False
-#   try: return dt.datetime.strptime(line, fmt)
-#   except ValueError:
-#      try:
-#         pattern = r'([ ^\W\w\d_ ]*) (\S+)'
-#         match = re.search(pattern, line)
-#         date,time = match.groups()
-#      except AttributeError:
-#         pattern = r'([ ^\W\w\d_ ]*)'
-#         match = re.search(pattern, line)
-#         date = match.groups()[0]
-#         time = '0:0'
-#         notime = True
-#      date = date.lower()
-#      h,m = parse_time(time)
-#      if date in daynum.keys(): ###############################  Using weekdays
-#         qday = daynum[date]
-#         now = dt.datetime.now()
-#         day = dt.timedelta(days=1)
-#         wds = []
-#         for i in range(7):
-#            d = (now + i*day).weekday()
-#            if d==qday: break
-#         date = now + i*day
-#      else: ##############################################  Using relative days
-#         delta = dt.timedelta(days=shifts[date.lower()])
-#         now = dt.datetime.now()
-#         date = now+delta
-#      if notime: return date.date()
-#      else: return date.replace(hour=h, minute=m, second=0, microsecond=0)
-#   except: raise
 
 def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
    """
    date here is local
    """
-   dateUTC = date - get_utc_shift()
+   LG.info(f'Decide_image: {date}, {scalar}, {vector}')
    dom='w2'
-   sc = get_sc(date)   # XXX should it be UTC????
-   root_fol = RP.fol_plots    
-   if date.time()==dt.time(0,0):
+   # Order is important!! datetime objects are date objects as well
+   if isinstance(date,dt.datetime):
+      LG.debug(f'Preparing picture for {date}, {scalar}, {vector}, {cover}')
+      txt = 'Preparando el mapa, dame un segundo...'
+      M = bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
+      f_tmp = build_image(date,scalar,vector,cover,dpi=dpi)
+      txt = '...acabé. Empiezo el envío (puede tardar unos segundos en llegar)'
+      bot.edit_message_text(chat_id=chatID, message_id=M['message_id'],
+                            text=txt, parse_mode=ParseMode.MARKDOWN)
+      rm = True
+      txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
+      P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
+   elif isinstance(date,dt.date):
+      LG.debug(f'Preparing video for {date}, {scalar}, {vector}, {cover}')
+      root_fol = RP.fol_plots    
+      sc = get_sc(date)   # XXX should it be UTC????
       f_tmp = f'{root_fol}/{dom}/{sc}/{scalar}.mp4'
       rm = False
-   else:
-      f_tmp = build_image(date,scalar,vector,cover,dpi=dpi)
-      rm = True
-   txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
-   P =  PlotDescriptor(dateUTC,vector,scalar,cover,fname=f_tmp)
+      txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y')}"
+      P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
+   else: LG.critical(f'Error in decide_image with time. Recived: {date}')
    send_media(bot,chatID,job_queue, P, caption=txt,
                                        t_del=5*60, t_renew=6*60*60,
                                        dis_notif=False,
@@ -215,19 +174,15 @@ def build_image(date,scalar,vector,cover,dpi=65):
    """
    dateUTC = date - get_utc_shift()
    dom='w2'
-   sc = get_sc(dateUTC)   # XXX should it be UTC????
+   sc = get_sc(dateUTC.date())   # It has to be UTC because the data files
+                                 # are stored using utc time
    root_fol = RP.fol_plots
    fol = f'{root_fol}/{dom}/{sc}'
    grids_fol = RP.fol_grids
    f_tmp = '/tmp/' + rand_name() + '.png'
    f_tmp1 = '/tmp/' + rand_name() + '.png'
-   P =  PlotDescriptor(dateUTC,vector,scalar,cover,fname=f_tmp)
-   props = {'sfcwind':'Viento Superficie', 'blwind':'Viento Promedio',
-            'bltopwind':'Viento Altura', 'hglider':'Techo (azul)',
-            'wstar':'Térmica', 'zsfclcl':'Base nube', 'zblcl':'Cielo cubierto',
-            'cape':'CAPE', 'wblmaxmin':'Convergencias' }
    hora = dateUTC.strftime('%H00')
-   title = f"{date.strftime('%d/%m/%Y-%H:%M')} {props[scalar]}"
+   title = f"{date.strftime('%d/%m/%Y-%H:%M')} {prop_names[scalar]}"
    terrain = f'{fol}/terrain.png'
    rivers = f'{fol}/rivers.png'
    ccaa = f'{fol}/ccaa.png'
@@ -302,15 +257,42 @@ def build_image(date,scalar,vector,cover,dpi=65):
 def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
                                                    t_renew=6*60*60,
                                                    dis_notif=False):
+   LG.debug('Sending sounding {place} {date}')
    places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
              'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
              'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
              'pegalajar': 12, 'otivar': 13}
    index = places[place]
-   fol = get_sc(date)
    tmp_folder = '/tmp'
    f_tmp = '/tmp/' + rand_name()
-   if date.time() == dt.time(0,0,0):
+   if isinstance(date,dt.datetime):
+      LG.debug('Sending single sounding')
+      fol = get_sc(date.date())
+      # dateUTC = date - get_utc_shift()
+      places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
+                'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
+                'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
+                'pegalajar': 12, 'otivar': 13}
+      index = places[place]
+      H = date.strftime('%H%M')
+      url_picture = 'http://raspuri.mooo.com/RASP/'
+      url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
+      LG.debug(url_picture)
+      urlretrieve(url_picture, f'{f_tmp}.png')
+      T,url = aemet.get_temp(place,date)
+      fmt = '%d/%m/%Y-%H:%M'
+      txt = f"Sounding for _{place.capitalize()}_ at {date.strftime(fmt)}"
+      if T != None:
+         txt += f'\nExpected temperature: *{T}°C*\n'
+         # txt += 'Temperatura sacada de aemet:\n'
+         # txt += url.replace('_','\_')
+         disable_web_page_preview = True
+      else:
+         disable_web_page_preview = None
+      P =  PlotDescriptor(date,None,None,None,fname=f'{f_tmp}.png')
+   elif isinstance(date,dt.date):
+      LG.debug('Sending sounding video')
+      fol = get_sc(date)
       f_out = f"{tmp_folder}/sounding_{place.replace(' ','_')}.mp4"
       i = 0
       for H in range(8,20):
@@ -331,54 +313,43 @@ def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
       os.system(com)
       com = f'rm {f_tmp}_*.png {f_gif}'
       os.system(com)
-      P =  PlotDescriptor(date,None,None,None,fname=f_out)
       txt = f"Curva de estado para {place.capitalize()}"
-      txt += f" {date.date().strftime('%d/%m/%Y')}"
-   else:
-      dateUTC = date - get_utc_shift()
-      places = {'arcones': 1, 'bustarviejo': 2, 'cebreros': 3, 'abantos': 4,
-                'piedrahita': 5, 'pedro bernardo': 6, 'lillo': 7,
-                'fuentemilanos': 8, 'candelario': 10, 'pitolero': 11,
-                'pegalajar': 12, 'otivar': 13}
-      index = places[place]
-      H = date.strftime('%H%M')
-      url_picture = 'http://raspuri.mooo.com/RASP/'
-      url_picture += f'{fol}/FCST/sounding{index}.curr.{H}lst.w2.png'
-      LG.debug(url_picture)
-      urlretrieve(url_picture, f'{f_tmp}.png')
-      T = aemet.get_temp(place,date)
-      fmt = '%d/%m/%Y-%H:%M'
-      txt = f"Sounding for _{place.capitalize()}_ at {date.strftime(fmt)}"
-      if T != None:
-         txt += f'\nExpected temperature: *{T}°C*'
-      ##tool.send_media(update,context, f_tmp, msg=txt, t=180,delete=True)
-      P =  PlotDescriptor(dateUTC,None,None,None,fname=f'{f_tmp}.png')
-      # bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
+      txt += f" {date.strftime('%d/%m/%Y')}"
+      txt += '\nPuedes ver la evolución de temperatura:\n'
+      txt += aemet.get_place_horas(place)
+      P =  PlotDescriptor(date,None,None,None,fname=f_out)
+   else: LG.critical(f'Error in sounding with time. Recived: {date}')
+   # Send prepared media
    send_media(bot,chatID,job_queue, P, caption=txt,
-                                         t_del=5*60, t_renew=6*60*60,
-                                         dis_notif=False,recycle=False,rm=True)
-   return
+                                       t_del=5*60, t_renew=6*60*60,
+                                       dis_notif=False,recycle=False,rm=True,
+                                       disable_web_page_preview = None)
 
-def send_rain(date,bot,chatID,job_queue, t_del=5*60,t_renew=6*60*60,
+def send_aemet(date,prop,bot,chatID,job_queue, t_del=5*60,t_renew=6*60*60,
                                                    dis_notif=False):
    """
    Send Aemet's forecast for rain [around Madrid]
    """
-   dateUTC = date - get_utc_shift()
+   captions = {'rain':'LLuvia acumulada en 1h',
+               'clouds':'Nubosidad','temperature':'Temperatura',
+               'press':'Presión', 'wind':'Viento',
+               'gust':'Racha máxima', 'lightning':'Descargas eléctricas'}
+   url = aemet.modelo_numerico(prop,date)
    f_tmp = '/tmp/' + rand_name() + '.png'
-   try: urlretrieve(aemet.rain(date), f_tmp)
+   try: urlretrieve(url, f_tmp)
    except HTTPError:
       txt = 'Lo siento, el pronóstico que has pedido no está disponible\n'
       txt += 'Puedes comprobar las horas disponibles aquí:\n'
       txt += 'https://www.aemet.es/es/eltiempo/prediccion/modelosnumericos/'
       txt += 'harmonie_arome_ccaa?opc2=mad&opc3=pr'
-      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
+      bot.send_message(chat_id=chatID, text=txt)
       return
-   P =  PlotDescriptor(dateUTC,None,None,None,fname=f_tmp)
-   # bot.send_chat_action(chat_id=chatID, action=ChatAction.UPLOAD_PHOTO)
-   txt = 'Lluvia acumulada en 1 hora, sacada de Aemet:\n'
+   P =  PlotDescriptor(date,None,None,None,fname=f_tmp)
+   txt = f"{captions[prop]} para el {date.strftime('%d/%m/%Y-%H:00')}\n"
+   txt += 'Sacada de Aemet:\n'
    txt += 'https://www.aemet.es/es/eltiempo/prediccion/modelosnumericos/'
    txt += 'harmonie_arome_ccaa?opc2=mad&opc3=pr'
+   txt = txt.replace('_','\_')
    send_media(bot,chatID,job_queue, P, caption=txt,
                                          t_del=5*60, t_renew=6*60*60,
                                          dis_notif=False,recycle=False)
@@ -390,131 +361,21 @@ def get_utc_shift():
    return dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
 
 def get_sc(date):
-   ## XXX should everything be in UTC?
-   # UTCshift = dt.datetime.now()-dt.datetime.utcnow()
-   # utcdate = date - UTCshift
-   # now = dt.datetime.utcnow()
-   now = dt.datetime.now()
+   """
+   returns the corresponding SCfolder:
+     today: SC2
+     tomorrow: SC2+1
+     ...
+   date should be a dt.date
+   """
    day = dt.timedelta(days=1)
-   if   date.date() == now.date(): return 'SC2'
-   elif date.date() == now.date()+day: return 'SC2+1'
-   elif date.date() == now.date()+2*day: return 'SC4+2'
-   elif date.date() == now.date()+3*day: return 'SC4+3'
+   now = dt.datetime.now().date()
+   if   date == now: return 'SC2'
+   elif date == now+day: return 'SC2+1'
+   elif date == now+2*day: return 'SC4+2'
+   elif date == now+3*day: return 'SC4+3'
    else: return None
 
-#def locate(date,prop):
-#   # UTCshift = dt.datetime.now()-dt.datetime.utcnow()
-#   # utcdate = date - UTCshift
-#   # now = dt.datetime.utcnow()
-#   fname  = HOME+'/Documents/RASP/PLOTS/w2/'
-#   # day = dt.timedelta(days=1)
-#   # build_image(date,prop)
-#   if isinstance(utcdate, dt.datetime):
-#      fol = get_sc(date)
-#      if fol == None: return None,None
-#      fname += fol + utcdate.strftime('/%H00')
-#      fname += '_%s.png'%(prop)
-#      return fol,fname
-#   else:
-#      if   utcdate == now.date(): fol = 'SC2'
-#      elif utcdate == now.date()+day: fol = 'SC2+1'
-#      elif utcdate == now.date()+2*day: fol = 'SC4+2'
-#      elif utcdate == now.date()+3*day: fol = 'SC4+3'
-#      fname += fol+'/'+prop+'.mp4'
-#      return fol,fname
-#
-#
-#def general(update,context,prop): #(bot,update,job_queue,args,prop):
-#   """ echo-like service to check system status """
-#   LG.info('received request: %s'%(update.message.text))
-#   #conn,c = admin.connect('files.db')
-#   try: chatID = update['message']['chat']['id']
-#   except TypeError: chatID = update['callback_query']['message']['chat']['id']
-#   bot = context.bot
-#   job_queue = context.job_queue
-#   d = ' '.join(context.args)
-#   try: date = parser_date(d)
-#   except:
-#      txt = 'Sorry, I didn\'t understand\n'
-#      txt += 'Usage: /fcst %d/%m/%Y-%H:%M\n'
-#      txt += '       /fcst [hoy/mañana/pasado/al otro] %H\n'
-#      txt += '       /fcst [hoy/mañana/pasado/al otro] %H:%M\n'
-#      txt += 'ex: /fcst 18/05/2019-13:00\n'
-#      txt += '    /fcst mañana 13:00\n'
-#      txt += '    /fcst al otro 14'
-#      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
-#      return
-#   fol,f = locate(date, prop)
-#   if f == None:
-#      txt = 'Sorry, forecast not available'
-#      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
-#      return
-#   prop_names = {'sfcwind':'Surface wind', 'blwind':'BL wind',
-#                 'bltopwind':'top BL wind', 'cape':'CAPE',
-#                 'wstar': 'Thermal Height', 'hbl': 'Height of BL Top',
-#                 'blcloudpct': '1h Accumulated Rain'}
-#   if f[-4:] == '.mp4':
-#      txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y'))
-#   else:
-#      txt = prop_names[prop]+' for %s'%(date.strftime('%d/%m/%Y-%H:%M'))
-#   RP = common.load(fname='config.ini')
-#   # send_media(bot,chatID,job_queue, f, caption=txt,
-#   #                                     t_del= RP.t_del, t_renew=RP.t_renew,
-#   #                                     dis_notif=False)
-#
-#
-#def techo(update, context):     general(update,context,'hbl')
-#
-#def thermal(update, context):   general(update,context,'wstar')
-#
-#def cape(update, context):      general(update,context,'cape')
-#
-#def sfcwind(update, context):   general(update,context,'sfcwind')
-#
-#def blwind(update, context):    general(update,context,'blwind')
-#
-#def bltopwind(update, context): general(update,context,'bltopwind')
-#
-#def blcloud(update, context):   general(update,context,'blcloudpct')
-#
-#
-#def tormentas(update, context):  #(bot,update,job_queue,args):
-#   try: chatID = update['message']['chat']['id']
-#   except TypeError: chatID = update['callback_query']['message']['chat']['id']
-#   def usage():
-#      txt = 'Available places:\n'
-#      txt += ' - Guadarrama, Somosierra, Gredos\n'
-#      txt += '(case insensitive)\n'
-#      txt += 'Available dates:\n'
-#      txt += ' - hoy, mañana, pasado, al otro, al siguiente\n'
-#      txt += 'Ex: /tormentas gredos mañana\n'
-#      txt += '      /tormentas Guadarrama al otro\n'
-#      txt += '      /tormentas somosierra hoy\n'
-#      M = context.bot.send_message(chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
-#   names = {'picos de europa': 'peu1',
-#            'pirineo navarro': 'nav1',
-#            'pirineo aragones': 'arn1',
-#            'pirineo catalan': 'cat1',
-#            'iberica riojana': 'rio1',
-#            'sierra de gredos': 'gre1', 'gredos': 'gre1',
-#            'guadarrama': 'mad2', 'somosierra': 'mad2',
-#            'iberica aragonesa': 'arn2',
-#            'sierra nevada': 'nev1'}
-#   dates = {'hoy':2, 'mañana':3, 'pasado':4, 'al otro':5, 'al siguiente':6}
-#
-#   if len(context.args) == 0:
-#      usage()
-#      return
-#   place = context.args[0].strip().lower()
-#   place = names[place]
-#   date = ' '.join(context.args[1:]).lower()
-#   w = dates[date]
-#   url = f'http://www.aemet.es/es/eltiempo/prediccion/montana?w={w}&p={place}'
-#   txt = '`'+str(aemet.parse_parte_aemet(url))+'`\n'
-#   txt += f'Taken from {url}'
-#   M = context.bot.send_message(chatID, text=txt,
-#                                disable_web_page_preview=True,
-#                                parse_mode=ParseMode.MARKDOWN)
 
 
 ## Auxiliary ###################################################################
@@ -589,7 +450,6 @@ def feedback(update, context):
       M = context.bot.send_message(chatID, text=txt, 
                                    parse_mode=ParseMode.MARKDOWN)
       return
-
    chat = update['message']['chat']
    uname = chat['username']
    fname = chat['first_name']
@@ -600,3 +460,41 @@ def feedback(update, context):
    chatID = MB.me
    M = context.bot.send_message(chatID, text=txt, 
                                 parse_mode=ParseMode.MARKDOWN)
+
+
+import meteograms
+def meteogram(date,info,bot,chatID,job_queue,dpi=65):
+   places = {'somosierra':(-3.615281,41.149850),
+             'arcones':(-3.707029,41.078854),
+             'nevero':(-3.847430,40.982414),
+             'bustarviejo':(-3.68661,40.87575),
+             'torrecaballeros':(-4.000919,40.937505),
+             'abantos':(-4.154882,40.611774),
+             'cebreros':(-4.51,40.45),
+             'pedro bernardo':(-4.91,40.25 ),
+             'piedrahita':(-5.3015,40.4221),
+             'lastra del cano':(-5.444265,40.346122),
+             'fuentemilanos':(-4.239,40.889),
+             'candelario':(-5.744,40.365)}
+   try:
+      P0 = places[info['place']]
+      place_name = info['place'].capitalize()
+   except KeyError:
+      P0 = info['place']
+      place_name = ''
+   data_fol = RP.fol_data
+   grids = RP.fol_grids
+   terrain = RP.fol_grids.replace('grids','terrain')
+   f_tmp = '/tmp/' + rand_name() + '.png'
+   stat = meteograms.get_meteogram(P0,date,data_fol,grids,terrain,f_tmp,
+                                                           place_name=place_name)
+   if stat:
+      P =  PlotDescriptor(date,None,None,None,fname=f_tmp)
+      txt = f'Meteograma en {place_name} para {date}'
+      send_media(bot,chatID,job_queue, P, caption=txt,
+                                          t_del=5*60, t_renew=6*60*60,
+                                          dis_notif=False,
+                                          recycle=False,rm=True)
+   else:
+      txt = 'Creo que me has pasado un punto fuera de nuestro domino de cálculo. No hay nada que pueda hacer, lo siento.'
+      bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)

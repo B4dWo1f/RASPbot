@@ -6,10 +6,30 @@ from os.path import expanduser
 import os
 here = os.path.dirname(os.path.realpath(__file__))
 
+fname = 'rasp_var.dict'
+var_dict = open(fname,'r').read().strip()
+keys,values = [],[]
+for l in var_dict.splitlines():
+   k,v = l.split(',')
+   keys.append(k)
+   values.append(v)
+prop_names = dict(zip(keys,values))
+
+
+command_callback = {'sfcwind':'sfcwind', 'blwind':'blwind',
+                    'bltopwind':'bltopwind',
+                    'techo':'hglider',
+                    'cape':'cape',
+                    'termicas':'wstar',
+                    'convergencias':'wblmaxmin',
+                    'base_nube':'zsfclcl',
+                    'cubierta_nube':'zblcl',
+                    'lluvia':'rain1'}
+
 
 class RunParams(object):
    def __init__(self,t_del,t_renew,token_file,log,log_lv,DBname,fol_plots,
-                                                                fol_grids):
+                                                         fol_grids, fol_data):
       self.t_del = t_del
       self.t_renew = t_renew
       self.log = log
@@ -18,6 +38,7 @@ class RunParams(object):
       self.DBname = DBname
       self.fol_plots = fol_plots
       self.fol_grids = fol_grids
+      self.fol_data = fol_data
    def __str__(self):
       txt =  f'Plots stored in: {self.fol_plots}\n'
       txt +=  f'Grids stored in: {self.fol_grids}\n'
@@ -40,6 +61,7 @@ def load(fname='config.ini'):
    if token_file[0] != '/': token_file = here + '/' + token_file
    fol_plots = expanduser(config['bot']['folder_plots'])
    fol_grids = expanduser(config['bot']['folder_grids'])
+   fol_data = expanduser(config['bot']['folder_data'])
    
    log = config['log']['log_file']
    levels = {'debug':10, 'info':20, 'warning':30, 'error':40, 'critical':50}
@@ -51,5 +73,5 @@ def load(fname='config.ini'):
    DBname = config['database']['db_name']
 
    RP = RunParams(t_del,t_renew, token_file,log,log_lv,DBname,
-                  fol_plots,fol_grids)
+                  fol_plots,fol_grids,fol_data)
    return RP
