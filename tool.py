@@ -114,10 +114,14 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
    M = send_func(chatID, media, caption=caption,
                                 timeout=300, disable_notification=dis_notif,
                                 parse_mode=ParseMode.MARKDOWN)
-   admin.user_usage(conn,chatID,1)
    LG.info(f'File sent to chat {chatID}')
    try: file_id = M['photo'][-1]['file_id']
    except IndexError: file_id = M['video']['file_id']
+   try: admin.user_usage(conn,chatID,1)
+   except admin.EntryNotFound:
+      warn_txt = f'Unregistered user: {chatID}'
+      M = bot.send_message(chat_id=MB.me, text=warn_txt,
+                           parse_mode=ParseMode.MARKDOWN)
    #if not skip:
    #   admin.insert_file(conn, now.strftime(fmt), P.date_valid, P.vector,
    #                           P.scalar, P.cover,file_id)
