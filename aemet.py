@@ -126,7 +126,7 @@ def modelo_numerico(prop,T):
    sufix = {'rain':'ww_asx', 'clouds':'ww_anx','temperature':'ww_atx',
             'press':'ww_a1x', 'wind':'wh_avx',
             'gust':'ww_arx', 'lightning':'ww_adx'}
-   LG.info(f'Rain for {T}')
+   LG.info(f'{prop.capitalize()} for {T}')
    url_base = 'https://www.aemet.es/imagenes_d/eltiempo/prediccion/modelos_num/'
    url_base += 'harmonie_arome_ccaa'
    now = dt.datetime.now()
