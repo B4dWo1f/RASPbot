@@ -122,6 +122,9 @@ def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
       warn_txt = f'Unregistered user: {chatID}'
       M = bot.send_message(chat_id=MB.me, text=warn_txt,
                            parse_mode=ParseMode.MARKDOWN)
+      warn_txt = 'Perdona, no te tengo registrado,'
+      warn_txt += 'por favor usa el comando /start y vuelve a intentarlo'
+      bot.send_message(chatID, text=warn_txt, parse_mode=ParseMode.MARKDOWN)
    #if not skip:
    #   admin.insert_file(conn, now.strftime(fmt), P.date_valid, P.vector,
    #                           P.scalar, P.cover,file_id)
@@ -151,12 +154,13 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
       LG.debug(f'Preparing picture for {date}, {scalar}, {vector}, {cover}')
       txt = 'Preparando el mapa, dame un segundo...'
       M = bot.send_message(chat_id=chatID, text=txt, parse_mode=ParseMode.MARKDOWN)
-      f_tmp = build_image(date,scalar,vector,cover,dpi=dpi)
+      f_tmp, valid_date = build_image(date,scalar,vector,cover,dpi=dpi)
       txt = '...acabé. Empiezo el envío (puede tardar unos segundos en llegar)'
       bot.edit_message_text(chat_id=chatID, message_id=M['message_id'],
                             text=txt, parse_mode=ParseMode.MARKDOWN)
       rm = True
-      txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y-%H:00')}"
+      txt = f"{prop_names[scalar]} para el "
+      txt += f"{valid_date.strftime('%d/%m/%Y-%H:00')}"
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    elif isinstance(date,dt.date):
       LG.debug(f'Preparing video for {date}, {scalar}, {vector}, {cover}')
@@ -182,11 +186,14 @@ def build_image(date,scalar,vector,cover,dpi=65):
                                  # are stored using utc time
    root_fol = RP.fol_plots
    fol = f'{root_fol}/{dom}/{sc}'
+   valid_date = open(f'{fol}/valid_date.txt','r').read().strip()
+   valid_date = dt.datetime.strptime(valid_date, '%d/%m/%Y')
+   valid_date = valid_date.replace(hour=date.hour,minute=date.minute)
    grids_fol = RP.fol_grids
    f_tmp = '/tmp/' + rand_name() + '.png'
    f_tmp1 = '/tmp/' + rand_name() + '.png'
    hora = dateUTC.strftime('%H00')
-   title = f"{date.strftime('%d/%m/%Y-%H:%M')} {prop_names[scalar]}"
+   title = f"{valid_date.strftime('%d/%m/%Y-%H:%M')} {prop_names[scalar]}"
    terrain = f'{fol}/terrain.png'
    rivers = f'{fol}/rivers.png'
    ccaa = f'{fol}/ccaa.png'
@@ -255,7 +262,7 @@ def build_image(date,scalar,vector,cover,dpi=65):
    
    os.system(f'convert {f_tmp} -trim {f_tmp1}')
    os.system(f'mv {f_tmp1} {f_tmp}')
-   return f_tmp
+   return f_tmp, valid_date
 
 
 def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
@@ -398,14 +405,16 @@ def help_txt():
    txt += f"/bltopwind - Viento en el tope de la capa convectiva\n"
    txt += f"/blwind - Viento promedio de toda la capa convectiva\n"
    txt += f"/techo - Altura máxima de las térmicas (en días de térmica azul)\n"
-   txt += f"/base_nube - Altura de la base de los cúmulos\n"
-   txt += f"/cubierta_nube - Altura de la base de la cobertura de nubes (8/8)\n"
+   txt += f"/base\\_nube - Altura de la base de los cúmulos\n"
+   txt += f"/cubierta\\_nube - Altura de la base de la cobertura de nubes (8/8)\n"
    txt += f"/termicas - Potencia máxima de las térmicas\n"
    txt += f"/convergencias - Velocidad vertical máxima del viento (ignorando térmicas)\n"
-   txt += f"/sondeo - Curva de estado\n"
    txt += f"/lluvia - Lluvia acumulada en 1 hora (sacada de Aemet)\n"
    txt += f"/map - Mapa personalizado, combinando el flujo de viento deseado con cualquier otra propiedad\n"
-   # txt += f"/feedback - Manda un mensaje al creador del bot\n"
+   txt += f"/sondeo - Curva de estado\n"
+   txt += f"/aemet - Modelos numéricos de Aemet (HARMONIE-AROME)\n"
+   txt += f"/meteograma - Meteograma para los despegues o para una ubicación personalizada\n"
+   txt += f"/feedback - Manda un mensaje al creador del bot\n"
    return txt.strip()
 
 def myhelp(update, context):
