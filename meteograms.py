@@ -235,6 +235,8 @@ def plot_meteogram(lon,lat,fol,grids,terrain,dom,fname,N=0,title=''):
    cstart = np.array([1,1,1])
    cend = np.array([0.3,0.3,0.3])
    blcolors = [x*cend + (1-x)*cstart for x in blcloud]
+   for h,cb,ct,bcl in zip(H,cloud_top,cloud,blcloud):
+      ax.text(h-0.25,ct+cb/2., f'{int(blcloud[0]*100)}%', color='white')
    ax.bar(H,cloud_top,bottom=cloud,width=1.05,color=blcolors,zorder=1,
                     error_kw=error_kw)
    # ax.bar(H,90,bottom=zsfclcl,width=1.05,color='gray',zorder=1,
