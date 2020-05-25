@@ -147,7 +147,7 @@ for patt in patterns:
 
 # Shortcuts
 shortcuts = ['sfcwind', 'bltopwind', 'blwind', 'techo', 'base_nube',
-             'cubierta_nube', 'termicas', 'convergencias', 'lluvia']
+             'cubierta_nube', 'termicas', 'convergencias', 'lluvia', 'cape']
 for prop in shortcuts:
    D.add_handler(CommandHandler(prop, M.shortcut_selector))
    D.add_handler(CallbackQueryHandler(M.shortcut_menu, pattern=prop))
