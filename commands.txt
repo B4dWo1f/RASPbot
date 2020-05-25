@@ -7,6 +7,7 @@ cubierta_nube - Altura de la base de la cobertura de nubes (8/8)
 termicas - Potencia máxima de la térmica
 convergencias - Velocidad vertical máxima del viento (ignorando térmicas)
 lluvia - Precipitación acumulada en 1h calculada por el RASP (comparar con Aemet)
+cape - CAPE
 sondeo - Ver curva de estado
 map - Mapa a medida eligiendo viento a distintas alturas y la propiedad deseada
 meteograma - Meteograma para cualquier punto del dominio peninsular (alpha!)
