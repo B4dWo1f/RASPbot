@@ -222,6 +222,9 @@ def plot_meteogram(lon,lat,fol,grids,terrain,dom,fname,N=0,title=''):
    col2 = np.array([193,38,0])/255
    wstar = np.array(wstar)
    # wstar_norm = (wstar-np.min(wstar))/(np.max(wstar)-np.min(wstar))
+   for h,w,dw in zip(H,wstar,dwcrit):
+      if dw-ground > 450:
+         ax.text(h-0.25,(dw+ground)/2,f'{w:.1f}',zorder=100) #,bbox=dict(edgecolor='none',facecolor='white', alpha=0.6))
    x0=1
    wstar_norm = (np.tanh(wstar/2-x0)+1)/2 -(np.tanh(-x0)+1)/2
    w_colors = [c*col2 + (1-c)*col1 for c in wstar_norm]
