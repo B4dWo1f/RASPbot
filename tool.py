@@ -160,7 +160,8 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
                             text=txt, parse_mode=ParseMode.MARKDOWN)
       rm = True
       txt = f"{prop_names[scalar]} para el "
-      txt += f"{valid_date.strftime('%d/%m/%Y-%H:00')}"
+      txt += f"{valid_date.strftime('%d/%m/%Y-%H:00')}\n"
+      txt += 'más info en: http://meteonube.hopto.org'
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    elif isinstance(date,dt.date):
       LG.debug(f'Preparing video for {date}, {scalar}, {vector}, {cover}')
@@ -168,7 +169,8 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
       sc = get_sc(date)   # XXX should it be UTC????
       f_tmp = f'{root_fol}/{dom}/{sc}/{scalar}.mp4'
       rm = False
-      txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y')}"
+      txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y')}\n"
+      txt += 'más info en: http://meteonube.hopto.org'
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    else: LG.critical(f'Error in decide_image with time. Recived: {date}')
    send_media(bot,chatID,job_queue, P, caption=txt,
