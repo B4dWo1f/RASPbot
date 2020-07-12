@@ -198,6 +198,7 @@ def build_image(date,scalar,vector,cover,dpi=65):
    rivers = f'{fol}/rivers.png'
    ccaa = f'{fol}/ccaa.png'
    takeoffs = f'{fol}/takeoffs.png'
+   cities = f'{fol}/cities.png'
    manga = f'{fol}/manga.png'
    bar = f'{root_fol}/{scalar}.png'  #_light.png'
    if vector != 'none': vector = f'{fol}/{hora}_{vector}_vec.png'
@@ -222,6 +223,7 @@ def build_image(date,scalar,vector,cover,dpi=65):
    rivers = mpimg.imread(rivers)
    ccaa = mpimg.imread(ccaa)
    takeoffs = mpimg.imread(takeoffs)
+   cities = mpimg.imread(cities)
    try: manga = mpimg.imread(manga)
    except FileNotFoundError: pass
    if vector != None: img_vector = mpimg.imread(vector)
@@ -247,6 +249,7 @@ def build_image(date,scalar,vector,cover,dpi=65):
    ax1.imshow(rivers,aspect=aspect,interpolation='lanczos',zorder=0)
    ax1.imshow(ccaa,aspect=aspect,interpolation='lanczos',zorder=20)
    ax1.imshow(takeoffs,aspect=aspect,interpolation='lanczos',zorder=20)
+   ax1.imshow(cities,aspect=aspect,interpolation='lanczos',zorder=20)
    if vector != None:
       ax1.imshow(img_vector, aspect=aspect, interpolation='lanczos',
                              zorder=11, alpha=0.75)
