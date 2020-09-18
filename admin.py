@@ -85,7 +85,7 @@ def show_all(conn,table=None):
          msg += '\n'
       msg += '\n'
    else:
-      c.execute(f'SELECT * FROM {table}')
+      c.execute(f'SELECT * FROM {table} ORDER BY usage DESC')
       names = list(map(lambda x: x[0], c.description))
       msg += ' '.join(names) + '\n'
       rows = c.fetchall()
