@@ -16,11 +16,14 @@ import aemet
 import admin
 from admin import EntryNotFound
 # Standard
+import os
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
-import matplotlib.image as mpimg
+if os.getenv('RUN_BY_CRON'): mpl.use('Agg')
 import matplotlib.pyplot as plt
+try: plt.style.use('mystyle')
+except: pass
+import matplotlib.image as mpimg
 from matplotlib import gridspec
 import string
 from urllib.request import urlretrieve
