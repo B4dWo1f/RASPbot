@@ -29,7 +29,7 @@ command_callback = {'sfcwind':'sfcwind', 'blwind':'blwind',
 
 class RunParams(object):
    def __init__(self,t_del,t_renew,token_file,log,log_lv,DBname,fol_plots,
-                                                         fol_grids, fol_data):
+                                                         fol_rplot, fol_data):
       self.t_del = t_del
       self.t_renew = t_renew
       self.log = log
@@ -37,7 +37,8 @@ class RunParams(object):
       self.token_file = token_file
       self.DBname = DBname
       self.fol_plots = fol_plots
-      self.fol_grids = fol_grids
+      self.fol_Rplots = fol_rplot   # Folder containing RASPlots
+      self.fol_grids = f'{self.fol_Rplots}/grids'
       self.fol_data = fol_data
    def __str__(self):
       txt =  f'Plots stored in: {self.fol_plots}\n'
@@ -60,7 +61,8 @@ def load(fname='config.ini'):
    token_file = config['bot']['token']
    if token_file[0] != '/': token_file = here + '/' + token_file
    fol_plots = expanduser(config['bot']['folder_plots'])
-   fol_grids = expanduser(config['bot']['folder_grids'])
+   fol_rplots = expanduser(config['bot']['folder_Rplots'])
+   #fol_grids = expanduser(config['bot']['folder_grids'])
    fol_data = expanduser(config['bot']['folder_data'])
    
    log = config['log']['log_file']
@@ -73,5 +75,5 @@ def load(fname='config.ini'):
    DBname = config['database']['db_name']
 
    RP = RunParams(t_del,t_renew, token_file,log,log_lv,DBname,
-                  fol_plots,fol_grids,fol_data)
+                  fol_plots,fol_rplots,fol_data)
    return RP
