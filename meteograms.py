@@ -7,7 +7,12 @@ HOME = os.getenv('HOME')
 import tool
 import datetime as dt
 import numpy as np
-import numeric as num
+try: 
+   import numeric as num
+except:  # ModuleNotFoundError:
+   os.system('f2py3 -c -m numeric numeric.f95')
+   import numeric as num
+
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt

@@ -16,11 +16,14 @@ import aemet
 import admin
 from admin import EntryNotFound
 # Standard
+import os
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
-import matplotlib.image as mpimg
+if os.getenv('RUN_BY_CRON'): mpl.use('Agg')
 import matplotlib.pyplot as plt
+try: plt.style.use('mystyle')
+except: pass
+import matplotlib.image as mpimg
 from matplotlib import gridspec
 import string
 from urllib.request import urlretrieve
@@ -160,7 +163,8 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
                             text=txt, parse_mode=ParseMode.MARKDOWN)
       rm = True
       txt = f"{prop_names[scalar]} para el "
-      txt += f"{valid_date.strftime('%d/%m/%Y-%H:00')}"
+      txt += f"{valid_date.strftime('%d/%m/%Y-%H:00')}\n"
+      txt += 'más info en: http://meteonube.hopto.org'
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    elif isinstance(date,dt.date):
       LG.debug(f'Preparing video for {date}, {scalar}, {vector}, {cover}')
@@ -168,7 +172,8 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
       sc = get_sc(date)   # XXX should it be UTC????
       f_tmp = f'{root_fol}/{dom}/{sc}/{scalar}.mp4'
       rm = False
-      txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y')}"
+      txt = f"{prop_names[scalar]} para el {date.strftime('%d/%m/%Y')}\n"
+      txt += 'más info en: http://meteonube.hopto.org'
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    else: LG.critical(f'Error in decide_image with time. Recived: {date}')
    send_media(bot,chatID,job_queue, P, caption=txt,
@@ -198,6 +203,8 @@ def build_image(date,scalar,vector,cover,dpi=65):
    rivers = f'{fol}/rivers.png'
    ccaa = f'{fol}/ccaa.png'
    takeoffs = f'{fol}/takeoffs.png'
+   cities = f'{fol}/cities.png'
+   manga = f'{fol}/manga.png'
    bar = f'{root_fol}/{scalar}.png'  #_light.png'
    if vector != 'none': vector = f'{fol}/{hora}_{vector}_vec.png'
    else: vector = None
@@ -221,6 +228,9 @@ def build_image(date,scalar,vector,cover,dpi=65):
    rivers = mpimg.imread(rivers)
    ccaa = mpimg.imread(ccaa)
    takeoffs = mpimg.imread(takeoffs)
+   cities = mpimg.imread(cities)
+   try: manga = mpimg.imread(manga)
+   except FileNotFoundError: pass
    if vector != None: img_vector = mpimg.imread(vector)
    img_scalar = mpimg.imread(scalar)
    bar = mpimg.imread(bar)
@@ -244,11 +254,14 @@ def build_image(date,scalar,vector,cover,dpi=65):
    ax1.imshow(rivers,aspect=aspect,interpolation='lanczos',zorder=0)
    ax1.imshow(ccaa,aspect=aspect,interpolation='lanczos',zorder=20)
    ax1.imshow(takeoffs,aspect=aspect,interpolation='lanczos',zorder=20)
+   ax1.imshow(cities,aspect=aspect,interpolation='lanczos',zorder=20)
    if vector != None:
       ax1.imshow(img_vector, aspect=aspect, interpolation='lanczos',
                              zorder=11, alpha=0.75)
    ax1.imshow(img_scalar, aspect=aspect, interpolation='lanczos',
                           zorder=10, alpha=0.5)
+   try: ax1.imshow(manga,aspect=aspect,interpolation='lanczos',zorder=21)
+   except: pass
    ax1.set_xticks([])
    ax1.set_yticks([])
    ax1.set_title(title)
