@@ -210,6 +210,7 @@ def menu(update,context, main_callback=None,
 
 def shortcut_selector(update,context):
    prop = update['message']['text'].replace('/','')
+   prop = prop.split('@')[0]   # to work in groups
    main_callback = command_callback[prop]
    operation = 'shortcut'
    scalar = command_callback[prop]
