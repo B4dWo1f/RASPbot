@@ -32,6 +32,7 @@ def options_handler(update,context):
    """
    query = update.callback_query
    job_queue = context.job_queue
+   userID = update['callback_query']['from_user']['id']
    # Try-catch to allow the possibility of arriving here just by sending the
    # location
    try:
@@ -164,7 +165,7 @@ def options_handler(update,context):
          tool.decide_image(date, context.user_data['scalar'],
                                  context.user_data['vector'],
                                  context.user_data['cover'],
-                                 context.bot,chatID,job_queue)
+                                 context.bot,chatID,job_queue,userID)
          context.user_data = {}   # reset after sending??
       elif context.user_data['operation'] == 'aemet':
          oper = context.user_data['oper_class']

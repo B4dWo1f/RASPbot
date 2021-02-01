@@ -71,7 +71,8 @@ def call_delete(context: telegram.ext.CallbackContext):
 
 
 @log_help.timer(LG)
-def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
+def send_media(bot,chatID,job_queue, P, userID, caption='',
+                                                t_del=None, t_renew=600,
                                                 dis_notif=False, recycle=False,
                                                 db_file='RaspBot.db',
                                                 rm=False,
@@ -146,7 +147,7 @@ def rand_name(pwdSize=8):
    return ''.join((choice(chars)) for x in range(pwdSize))
 
 
-def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
+def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,userID,dpi=65):
    """
    date here is local
    """
@@ -176,7 +177,7 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
       txt += 'más info en: http://meteonube.hopto.org'
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    else: LG.critical(f'Error in decide_image with time. Recived: {date}')
-   send_media(bot,chatID,job_queue, P, caption=txt,
+   send_media(bot,chatID,job_queue, P, userID, caption=txt,
                                        t_del=RP.t_del,  #5*60,
                                        t_renew=RP.t_renew,  #6*60*60,
                                        dis_notif=False,
