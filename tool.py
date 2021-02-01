@@ -177,7 +177,8 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    else: LG.critical(f'Error in decide_image with time. Recived: {date}')
    send_media(bot,chatID,job_queue, P, caption=txt,
-                                       t_del=5*60, t_renew=6*60*60,
+                                       t_del=RP.t_del,  #5*60,
+                                       t_renew=RP.t_renew,  #6*60*60,
                                        dis_notif=False,
                                        recycle=False,rm=rm)
 
