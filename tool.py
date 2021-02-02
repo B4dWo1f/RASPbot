@@ -280,7 +280,7 @@ def build_image(date,scalar,vector,cover,dpi=65):
    return f_tmp, valid_date
 
 
-def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
+def send_sounding(place,date,bot,chatID,job_queue, userID, t_del=5*60,
                                                    t_renew=6*60*60,
                                                    dis_notif=False):
    LG.debug('Sending sounding {place} {date}')
@@ -346,7 +346,7 @@ def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
       P =  PlotDescriptor(date,None,None,None,fname=f_out)
    else: LG.critical(f'Error in sounding with time. Recived: {date}')
    # Send prepared media
-   send_media(bot,chatID,job_queue, P, caption=txt,
+   send_media(bot,chatID,job_queue, P, userID, caption=txt,
                                        t_del=5*60, t_renew=6*60*60,
                                        dis_notif=False,recycle=False,rm=True,
                                        disable_web_page_preview = None)
@@ -519,7 +519,7 @@ def meteogram(date,info,bot,chatID,job_queue,dpi=65):
    if stat:
       P =  PlotDescriptor(date,None,None,None,fname=f_tmp)
       txt = f'Meteograma en {place_name} para {date}'
-      send_media(bot,chatID,job_queue, P, caption=txt,
+      send_media(bot,chatID,job_queue, P, userID, caption=txt,
                                           t_del=5*60, t_renew=6*60*60,
                                           dis_notif=False,
                                           recycle=False,rm=True)

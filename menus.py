@@ -155,9 +155,9 @@ def options_handler(update,context):
       else: date = date.replace(hour=int(context.user_data['hour']))
       if context.user_data['operation'] == 'sounding':
          place = context.user_data['place']
-         tool.send_sounding(place,date,context.bot,chatID,job_queue)
+         tool.send_sounding(place,date,context.bot,chatID,job_queue,userID)
       elif context.user_data['operation'] == 'meteogram':
-         tool.meteogram(date,context.user_data,context.bot,chatID,job_queue)
+         tool.meteogram(date,context.user_data,context.bot,chatID,job_queue,userID)
          context.user_data = {}
       elif context.user_data['operation'] in ['map','shortcut']:
          context.user_data['cover'] = None  #XXX future implementation
