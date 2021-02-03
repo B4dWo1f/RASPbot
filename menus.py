@@ -32,7 +32,8 @@ def options_handler(update,context):
    """
    query = update.callback_query
    job_queue = context.job_queue
-   userID = update['callback_query']['from_user']['id']
+   try: userID = update['callback_query']['from_user']['id']
+   except: pass
    # Try-catch to allow the possibility of arriving here just by sending the
    # location
    try:
