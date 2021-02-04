@@ -491,7 +491,7 @@ def feedback(update, context):
 
 
 import meteograms
-def meteogram(date,info,bot,chatID,job_queue,dpi=65):
+def meteogram(date,info,bot,chatID,job_queue,userID,dpi=65):
    places = {'somosierra':(-3.615281,41.149850),
              'arcones':(-3.707029,41.078854),
              'nevero':(-3.847430,40.982414),
