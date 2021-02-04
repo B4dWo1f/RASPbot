@@ -32,7 +32,9 @@ def options_handler(update,context):
    """
    query = update.callback_query
    job_queue = context.job_queue
-   try: userID = update['callback_query']['from_user']['id']
+   try:
+      userID = update['callback_query']['from_user']['id']
+      context.user_data['userid'] = userID
    except: pass
    # Try-catch to allow the possibility of arriving here just by sending the
    # location
@@ -158,7 +160,7 @@ def options_handler(update,context):
          place = context.user_data['place']
          tool.send_sounding(place,date,context.bot,chatID,job_queue,userID)
       elif context.user_data['operation'] == 'meteogram':
-         tool.meteogram(date,context.user_data,context.bot,chatID,job_queue,userID)
+         tool.meteogram(date,context.user_data,context.bot,chatID,job_queue, context.user_data['userid'])
          context.user_data = {}
       elif context.user_data['operation'] in ['map','shortcut']:
          context.user_data['cover'] = None  #XXX future implementation
