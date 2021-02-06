@@ -280,7 +280,8 @@ def build_image(date,scalar,vector,cover,dpi=65):
    return f_tmp, valid_date
 
 
-def send_sounding(place,date,bot,chatID,job_queue, userID, t_del=5*60,
+def send_sounding(place,date,bot,chatID,job_queue, userID,
+                                                   t_del=RP.t_del,  #5*60,
                                                    t_renew=6*60*60,
                                                    dis_notif=False):
    LG.debug('Sending sounding {place} {date}')
@@ -347,7 +348,8 @@ def send_sounding(place,date,bot,chatID,job_queue, userID, t_del=5*60,
    else: LG.critical(f'Error in sounding with time. Recived: {date}')
    # Send prepared media
    send_media(bot,chatID,job_queue, P, userID, caption=txt,
-                                       t_del=5*60, t_renew=6*60*60,
+                                       t_del=RP.t_del,  #5*60,
+                                       t_renew=6*60*60,
                                        dis_notif=False,recycle=False,rm=True,
                                        disable_web_page_preview = None)
 
@@ -377,8 +379,9 @@ def send_aemet(date,prop,bot,chatID,job_queue, t_del=5*60,t_renew=6*60*60,
    txt += 'harmonie_arome_ccaa?opc2=mad&opc3=pr'
    txt = txt.replace('_','\_')
    send_media(bot,chatID,job_queue, P, caption=txt,
-                                         t_del=5*60, t_renew=6*60*60,
-                                         dis_notif=False,recycle=False)
+                                       t_del=RP.t_del,  #5*60,
+                                       t_renew=6*60*60,
+                                       dis_notif=False, recycle=False)
    os.system(f'rm {f_tmp}')
 
 
@@ -520,7 +523,8 @@ def meteogram(date,info,bot,chatID,job_queue,userID,dpi=65):
       P =  PlotDescriptor(date,None,None,None,fname=f_tmp)
       txt = f'Meteograma en {place_name} para {date}'
       send_media(bot,chatID,job_queue, P, userID, caption=txt,
-                                          t_del=5*60, t_renew=6*60*60,
+                                          t_del=RP.t_del,  #5*60,
+                                          t_renew=6*60*60,
                                           dis_notif=False,
                                           recycle=False,rm=True)
    else:
