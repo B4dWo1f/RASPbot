@@ -444,6 +444,28 @@ def myhelp(update, context):
    M = context.bot.send_message(chatID, text=txt, 
                                 parse_mode=ParseMode.MARKDOWN)
 
+# @CR.restricted(3)
+def lasts(update, context):
+   """ echo-like service to check system status """
+   LG.info('Lasts')
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
+   folder = RP.fol_Rplots
+   days = {'SC2.time': 'Hoy',
+           'SC2+1.time': 'Mañana',
+           'SC4+2.time': 'Pasado',
+           'SC4+3.time': 'Al otro'}
+   txt = []
+   for ftime in os.popen(f'ls {folder}/*.time').read().strip().splitlines():
+      day = days[ftime.split("/")[-1]]
+      time_last_run = open(ftime).read().strip()
+      txt.append(f'{day}: {time_last_run}')
+   txt[0], txt[1] = txt[1], txt[0]
+   txt = '\n'.join(txt)
+   M = context.bot.send_message(chatID, text=txt, 
+                                parse_mode=ParseMode.MARKDOWN)
+
+
 @CR.restricted(0)
 def log(update, context):
    LG.info('Log')

@@ -175,6 +175,7 @@ D.add_handler(CommandHandler('stats', stats))
 D.add_handler(CommandHandler('hola', tool.hola))
 D.add_handler(CommandHandler('help', tool.myhelp))
 D.add_handler(CommandHandler('log', tool.log))
+D.add_handler(CommandHandler('last', tool.lasts))
 D.add_handler(CommandHandler('feedback', tool.feedback))
 
 ## Setup DB for files ##########################################################
