@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import logging
+LG = logging.getLogger(__name__)
+
 import os
 HOME = os.getenv('HOME')
 
@@ -117,7 +120,10 @@ def plot_meteogram(lon,lat,fol,grids,terrain,dom,fname,N=0,title=''):
 
    def get_data(fol,h,prop,closest,weights=None):
       fname = f'{fol}/{h*100:04d}_{prop}.data'
-      M = np.loadtxt(fname,skiprows=4)
+      try: M = np.loadtxt(fname,skiprows=4)
+      except:
+         LG.error(f'Missing data: {fname}')
+         raise
       return get_value_err(M,closest,weights)
 
    def get_data_mask(fol,h,prop,closest,weights=None):
