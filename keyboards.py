@@ -148,7 +148,7 @@ def hour_msg(warn=False):
    return txt
 
 def finalmsg():
-   return 'Enviando:'
+   return 'Resumen del mapa solicitado:'
 
 def places_msg():
    return 'Elige zona:'
