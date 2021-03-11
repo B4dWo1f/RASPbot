@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 import os
+import pandas as pd
 from telegram import InlineKeyboardButton as IlKB
 # from telegram import KeyboardButton
 from telegram import InlineKeyboardMarkup #, ReplyKeyboardMarkup
@@ -59,8 +60,16 @@ def places(main_callback,restart=False,personal=True):
    * all the returned callback_data should start with "place_"
    """
    # Build buttons upon available soundings
-   places = open(here+'/soundings.csv','r').read().strip().splitlines()
-   places = dict([l.split(',') for l in places])
+   places_df = pd.read_csv(here+'/soundings1.csv', delimiter=';', header=0)
+   if main_callback == 'main_sounding':
+      places = places_df[['label','sounding_index']].dropna()
+      places = dict(zip(places['label'],map(int,places['sounding_index'])))
+   elif main_callback == 'main_meteogram':
+      places = places_df[['label','meteogram']].dropna()
+      places = dict(zip(places['label'],places['meteogram']))
+   else:   # Fallback. to be deleted
+      places = open(here+'/soundings.csv','r').read().strip().splitlines()
+      places = dict([l.split(',') for l in places])
    places_keys = list(places.keys())
    keyboard = []
    for i in range(0,len(places_keys),2):
@@ -71,7 +80,8 @@ def places(main_callback,restart=False,personal=True):
                           IlKB(P1.capitalize(), callback_data='place_'+P1)])
       except IndexError:
          P = places_keys[i]
-         keyboard.append([IlKB(P.capitalize(), callback_data=P), ])
+         keyboard.append([IlKB(P.capitalize(), callback_data='place_'+P), ])
+         #XXX bug??
    # If personal location is available
    if personal:
       keyboard.append([IlKB(text="Ubicación Personalizada", 

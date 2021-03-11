@@ -182,7 +182,8 @@ D.add_handler(CommandHandler('feedback', tool.feedback))
 admin.create_db(RP.DBname)
 
 # Broadcast
-J.run_daily(channel.broadcast, dt.time(8,30), context=(Bcast_chatID,))
+if RP.do_broadcast:
+   J.run_daily(channel.broadcast, dt.time(8,30), context=(Bcast_chatID,))
 
 U.start_polling()
 ################################################################################

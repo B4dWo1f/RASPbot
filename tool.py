@@ -516,19 +516,27 @@ def feedback(update, context):
 
 
 import meteograms
+import pandas as pd
 def meteogram(date,info,bot,chatID,job_queue,userID,dpi=65):
-   places = {'somosierra':(-3.615281,41.149850),
-             'arcones':(-3.707029,41.078854),
-             'nevero':(-3.847430,40.982414),
-             'bustarviejo':(-3.68661,40.87575),
-             'torrecaballeros':(-4.000919,40.937505),
-             'abantos':(-4.154882,40.611774),
-             'cebreros':(-4.51,40.45),
-             'pedro bernardo':(-4.91,40.25 ),
-             'piedrahita':(-5.3015,40.4221),
-             'lastra del cano':(-5.444265,40.346122),
-             'fuentemilanos':(-4.239,40.889),
-             'candelario':(-5.744,40.365)}
+   places_df = pd.read_csv(here+'/soundings1.csv', delimiter=';', header=0)
+   places = places_df[['label','meteogram']].dropna()
+   def string2tuple(p):
+      return tuple(map(float,p.replace('(','').replace(')','').split(',')))
+   places['meteogram'] = places['meteogram'].apply(string2tuple)
+   places = dict(zip(places['label'],places['meteogram']))
+   # places = {'somosierra':(-3.615281,41.149850),
+   #           'arcones':(-3.707029,41.078854),
+   #           'nevero':(-3.847430,40.982414),
+   #           'bustarviejo':(-3.68661,40.87575),
+   #           'torrecaballeros':(-4.000919,40.937505),
+   #           'abantos':(-4.154882,40.611774),
+   #           'cebreros':(-4.51,40.45),
+   #           'pedro bernardo':(-4.91,40.25 ),
+   #           'piedrahita':(-5.3015,40.4221),
+   #           'lastra del cano':(-5.444265,40.346122),
+   #           'fuentemilanos':(-4.239,40.889),
+   #           'candelario':(-5.744,40.365),
+   #           'puebla':(-3.506884,41.018576)}
    try:
       P0 = places[info['place']]
       place_name = info['place'].capitalize()
