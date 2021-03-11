@@ -71,7 +71,8 @@ def call_delete(context: telegram.ext.CallbackContext):
 
 
 @log_help.timer(LG)
-def send_media(bot,chatID,job_queue, P, caption='', t_del=None, t_renew=600,
+def send_media(bot,chatID,job_queue, P, userID, caption='',
+                                                t_del=None, t_renew=600,
                                                 dis_notif=False, recycle=False,
                                                 db_file='RaspBot.db',
                                                 rm=False,
@@ -146,7 +147,7 @@ def rand_name(pwdSize=8):
    return ''.join((choice(chars)) for x in range(pwdSize))
 
 
-def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
+def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,userID,dpi=65):
    """
    date here is local
    """
@@ -176,7 +177,7 @@ def decide_image(date,scalar,vector,cover,bot,chatID,job_queue,dpi=65):
       txt += 'más info en: http://meteonube.hopto.org'
       P =  PlotDescriptor(date,vector,scalar,cover,fname=f_tmp)
    else: LG.critical(f'Error in decide_image with time. Recived: {date}')
-   send_media(bot,chatID,job_queue, P, caption=txt,
+   send_media(bot,chatID,job_queue, P, userID, caption=txt,
                                        t_del=RP.t_del,  #5*60,
                                        t_renew=RP.t_renew,  #6*60*60,
                                        dis_notif=False,
@@ -279,7 +280,8 @@ def build_image(date,scalar,vector,cover,dpi=65):
    return f_tmp, valid_date
 
 
-def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
+def send_sounding(place,date,bot,chatID,job_queue, userID,
+                                                   t_del=RP.t_del,  #5*60,
                                                    t_renew=6*60*60,
                                                    dis_notif=False):
    LG.debug('Sending sounding {place} {date}')
@@ -345,8 +347,9 @@ def send_sounding(place,date,bot,chatID,job_queue, t_del=5*60,
       P =  PlotDescriptor(date,None,None,None,fname=f_out)
    else: LG.critical(f'Error in sounding with time. Recived: {date}')
    # Send prepared media
-   send_media(bot,chatID,job_queue, P, caption=txt,
-                                       t_del=5*60, t_renew=6*60*60,
+   send_media(bot,chatID,job_queue, P, userID, caption=txt,
+                                       t_del=RP.t_del,  #5*60,
+                                       t_renew=6*60*60,
                                        dis_notif=False,recycle=False,rm=True,
                                        disable_web_page_preview = None)
 
@@ -376,8 +379,9 @@ def send_aemet(date,prop,bot,chatID,job_queue, t_del=5*60,t_renew=6*60*60,
    txt += 'harmonie_arome_ccaa?opc2=mad&opc3=pr'
    txt = txt.replace('_','\_')
    send_media(bot,chatID,job_queue, P, caption=txt,
-                                         t_del=5*60, t_renew=6*60*60,
-                                         dis_notif=False,recycle=False)
+                                       t_del=RP.t_del,  #5*60,
+                                       t_renew=6*60*60,
+                                       dis_notif=False, recycle=False)
    os.system(f'rm {f_tmp}')
 
 
@@ -490,7 +494,7 @@ def feedback(update, context):
 
 
 import meteograms
-def meteogram(date,info,bot,chatID,job_queue,dpi=65):
+def meteogram(date,info,bot,chatID,job_queue,userID,dpi=65):
    places = {'somosierra':(-3.615281,41.149850),
              'arcones':(-3.707029,41.078854),
              'nevero':(-3.847430,40.982414),
@@ -518,8 +522,9 @@ def meteogram(date,info,bot,chatID,job_queue,dpi=65):
    if stat:
       P =  PlotDescriptor(date,None,None,None,fname=f_tmp)
       txt = f'Meteograma en {place_name} para {date}'
-      send_media(bot,chatID,job_queue, P, caption=txt,
-                                          t_del=5*60, t_renew=6*60*60,
+      send_media(bot,chatID,job_queue, P, userID, caption=txt,
+                                          t_del=RP.t_del,  #5*60,
+                                          t_renew=6*60*60,
                                           dis_notif=False,
                                           recycle=False,rm=True)
    else:

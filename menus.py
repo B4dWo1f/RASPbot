@@ -32,6 +32,10 @@ def options_handler(update,context):
    """
    query = update.callback_query
    job_queue = context.job_queue
+   try:
+      userID = update['callback_query']['from_user']['id']
+      context.user_data['userid'] = userID
+   except: pass
    # Try-catch to allow the possibility of arriving here just by sending the
    # location
    try:
@@ -154,9 +158,9 @@ def options_handler(update,context):
       else: date = date.replace(hour=int(context.user_data['hour']))
       if context.user_data['operation'] == 'sounding':
          place = context.user_data['place']
-         tool.send_sounding(place,date,context.bot,chatID,job_queue)
+         tool.send_sounding(place,date,context.bot,chatID,job_queue,userID)
       elif context.user_data['operation'] == 'meteogram':
-         tool.meteogram(date,context.user_data,context.bot,chatID,job_queue)
+         tool.meteogram(date,context.user_data,context.bot,chatID,job_queue, context.user_data['userid'])
          context.user_data = {}
       elif context.user_data['operation'] in ['map','shortcut']:
          context.user_data['cover'] = None  #XXX future implementation
@@ -164,7 +168,7 @@ def options_handler(update,context):
          tool.decide_image(date, context.user_data['scalar'],
                                  context.user_data['vector'],
                                  context.user_data['cover'],
-                                 context.bot,chatID,job_queue)
+                                 context.bot,chatID,job_queue,userID)
          context.user_data = {}   # reset after sending??
       elif context.user_data['operation'] == 'aemet':
          oper = context.user_data['oper_class']
