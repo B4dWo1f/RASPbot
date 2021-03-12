@@ -444,6 +444,17 @@ def myhelp(update, context):
    M = context.bot.send_message(chatID, text=txt, 
                                 parse_mode=ParseMode.MARKDOWN)
 
+
+import channel_tools
+def frentes(update, context):
+   """ echo-like service to check system status """
+   LG.info('tool.frentes')
+   try: chatID = update['message']['chat']['id']
+   except TypeError: chatID = update['callback_query']['message']['chat']['id']
+   channel_tools.send_frentes(chatID,context.bot)
+   # M = context.bot.send_message(chatID, text=txt, 
+   #                              parse_mode=ParseMode.MARKDOWN)
+
 # @CR.restricted(3)
 def lasts(update, context):
    """ echo-like service to check system status """

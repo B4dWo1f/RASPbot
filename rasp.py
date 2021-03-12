@@ -14,7 +14,7 @@ from telegram.ext import MessageHandler, Filters
 # My Libraies
 import credentials as CR
 import menus as M
-import channel
+import channel_tools
 import admin
 import tool
 # Standard
@@ -166,6 +166,7 @@ D.add_handler(MessageHandler(Filters.location, M.options_handler))
 # Aemet
 D.add_handler(CommandHandler('aemet', M.aemet_selector))
 D.add_handler(CallbackQueryHandler(M.aemet_menu, pattern='main_aemet'))
+D.add_handler(CommandHandler('frentes', tool.frentes))
 
 # Admin
 D.add_handler(CommandHandler('start', start))
@@ -183,7 +184,7 @@ admin.create_db(RP.DBname)
 
 # Broadcast
 if RP.do_broadcast:
-   J.run_daily(channel.broadcast, dt.time(8,30), context=(Bcast_chatID,))
+   J.run_daily(channel_tools.broadcast, dt.time(8,30), context=(Bcast_chatID,))
 
 U.start_polling()
 ################################################################################
