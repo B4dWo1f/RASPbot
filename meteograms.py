@@ -36,7 +36,10 @@ import json
 def get_meteogram(P0,date,data_fol,grid_folder,terrain_folder,fname,N=0,
                                                               place_name=''):
    lon,lat = P0
-   sc = tool.get_sc(date)
+   if dt.datetime.now().hour < 8:
+      shift = dt.timedelta(days=1)
+      date = date - shift
+   sc = tool.get_sc(date,shift)
    limits = json.load( open(f'{RP.fol_Rplots}/limits.json') )['lims']
 #'../RASPlots/limits.json') )['lims']
    doms,areas = [],[]

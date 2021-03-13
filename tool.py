@@ -389,16 +389,18 @@ def get_utc_shift():
    UTCshift = dt.datetime.now()-dt.datetime.utcnow()
    return dt.timedelta(hours = round(UTCshift.total_seconds()/3600))
 
-def get_sc(date):
+def get_sc(date, shift=None):
    """
    returns the corresponding SCfolder:
      today: SC2
      tomorrow: SC2+1
      ...
-   date should be a dt.date
+   date should be a datetime.date
+   shift should be a datetime.timedelta
    """
    day = dt.timedelta(days=1)
    now = dt.datetime.now().date()
+   if shift != None: now = now - shift
    if   date == now: return 'SC2'
    elif date == now+day: return 'SC2+1'
    elif date == now+2*day: return 'SC4+2'
